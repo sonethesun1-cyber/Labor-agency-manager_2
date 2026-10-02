@@ -38,15 +38,19 @@ const DEFAULT_DATA = {
   finance: [],        // receivable & payable ledger entries
   training: [],        // pre-departure training session records
   contentHistory: [],   // generated social-media recruitment posts (most recent first)
+  importedWorkers: [],   // read-only snapshot imported from the user's other system (KS Recruitment Agency)
+  importedJobs: [],       // read-only snapshot of that system's job postings
 };
 
 let db = JSON.parse(JSON.stringify(DEFAULT_DATA));
+db.importMeta = null; // not an array, so it's set explicitly here rather than via DEFAULT_DATA + the array-enforcement loop below
 try {
   const loaded = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
-  db = Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), loaded);
+  db = Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), { importMeta: null }, loaded);
   for (const key of Object.keys(DEFAULT_DATA)) {
     if (!Array.isArray(db[key])) db[key] = [];
   }
+  if (db.importMeta === undefined) db.importMeta = null;
 } catch (e) { /* no data.json yet — start empty */ }
 
 function saveData() {
@@ -165,6 +169,63 @@ app.use((req, res, next) => {
     return res.status(401).json({ error: 'Please log in first.', loginRequired: true });
   }
   return res.redirect('/login');
+});
+
+// ---------------------------------------------------------------------------
+// Import workers/jobs from a "KS Recruitment Agency" backup JSON export (the
+// user's other, already-in-production system that manages the same workers
+// in much finer detail — passport/medical/document data, job postings,
+// orders, invoices). Registered here, BEFORE the app-wide
+// express.json({limit:'1mb'}) below, so this route's own larger json limit
+// gets first look at the request body — a real backup (600+ workers with
+// photo URLs and full passport/medical detail) runs several MB, well over
+// the app's normal request size. Same registration-order pattern as the
+// sibling AI Movie Architect app uses for its own oversized image routes.
+//
+// This is a ONE-WAY, READ-ONLY import: imported records are kept in their
+// own separate arrays (`importedWorkers`/`importedJobs`), never merged into
+// or overwriting the user's own hand-entered `workers` here. Re-importing a
+// fresh backup is always safe — it just replaces the previous imported
+// snapshot wholesale, the same way re-running the KS system's own "ສຳຮອງ
+// ຂໍ້ມູນ" export and re-uploading it here is meant to be a routine refresh,
+// not a one-time migration. The heavy embedded base64 "logo"/"photo1-3" fields on job
+// records is stripped on the way in purely to keep data.json from
+// ballooning (the agency's own employer logos aren't needed for anything
+// this app does with them); nothing else is dropped — every other field is
+// kept as-is for full fidelity.
+// ---------------------------------------------------------------------------
+app.post('/api/import/ks-backup', express.json({ limit: '15mb' }), (req, res) => {
+  const body = req.body || {};
+  if (!body || typeof body !== 'object' || !Array.isArray(body.workers)) {
+    return res.status(400).json({ error: 'ໄຟລ໌ນີ້ບໍ່ແມ່ນ backup ທີ່ຖືກຕ້ອງ (ບໍ່ພົບ "workers" ຢູ່ໃນໄຟລ໌).' });
+  }
+  const workers = body.workers;
+  const jobs = Array.isArray(body.jobs) ? body.jobs : [];
+
+  db.importedWorkers = workers.map((w) => Object.assign({}, w));
+  // Drop embedded base64 employer logo/workplace photos — see comment above.
+  // These are by far the heaviest fields in a real export (a single job's
+  // photo1/photo2/photo3 together can run several hundred KB each, vs. a few
+  // bytes for every other field), so stripping them is what actually keeps
+  // data.json lean; every other field is kept as-is.
+  const HEAVY_JOB_FIELDS = ['logo', 'photo1', 'photo2', 'photo3'];
+  db.importedJobs = jobs.map((j) => {
+    const copy = Object.assign({}, j);
+    HEAVY_JOB_FIELDS.forEach((f) => delete copy[f]);
+    return copy;
+  });
+  db.importMeta = {
+    importedAt: nowIso(),
+    sourceExportedAt: body.exportedAt || null,
+    workerCount: db.importedWorkers.length,
+    jobCount: db.importedJobs.length,
+  };
+  saveData();
+  res.json({ ok: true, meta: db.importMeta });
+});
+
+app.get('/api/imported-data', (req, res) => {
+  res.json({ importedWorkers: db.importedWorkers, importedJobs: db.importedJobs, importMeta: db.importMeta });
 });
 
 app.use(express.json({ limit: '1mb' }));
@@ -349,6 +410,15 @@ app.post('/api/training', (req, res) => {
   const record = {
     id: crypto.randomUUID(),
     workerId: body.workerId || null,
+    // workerSource distinguishes a locally-added worker ('local', the
+    // default — looked up live against db.workers each render) from one
+    // picked from the read-only KS import ('ks' — those ids live in
+    // db.importedWorkers, a different array, so they need their own tag).
+    // workerName is a snapshot taken at creation time so the training
+    // record still displays a sensible name even if that worker is later
+    // deleted locally, or a fresh KS import no longer contains that id.
+    workerSource: body.workerSource === 'ks' ? 'ks' : 'local',
+    workerName: (body.workerName || '').toString().trim(),
     topic: String(body.topic).trim(),
     date: (body.date || '').toString(),
     completed: Boolean(body.completed),

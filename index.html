@@ -69,6 +69,7 @@
   </nav>
 
   <div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-800 border border-indigo-600 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl z-50"></div>
+  <datalist id="workerDatalist"></datalist>
 
   <!-- ===================== DASHBOARD ===================== -->
   <section id="tab-dashboard" class="tab-section space-y-5">
@@ -89,19 +90,38 @@
       <h2 class="text-sm font-bold text-slate-200">ລາຍຊື່ແຮງງານ / ຜູ້ສະໝັກ</h2>
       <button onclick="openWorkerForm()" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 shadow-lg shadow-indigo-900/30">+ ເພີ່ມແຮງງານໃໝ່</button>
     </div>
-    <div class="flex gap-2 flex-wrap text-[11px]">
-      <select id="workerStageFilter" onchange="renderWorkers()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
-        <option value="">ທຸກຂັ້ນຕອນ</option>
-        <option value="applied">ສະໝັກແລ້ວ</option>
-        <option value="training">ກຳລັງອົບຮົມ</option>
-        <option value="documents">ກຽມເອກະສານ/ວີຊາ</option>
-        <option value="deployed_waiting">ລໍຖ້າຈັດສົ່ງ</option>
-        <option value="working">ເຮັດວຽກຢູ່ໄທແລ້ວ</option>
-        <option value="cancelled">ຍົກເລີກ</option>
-      </select>
-      <input id="workerSearch" oninput="renderWorkers()" placeholder="ຄົ້ນຫາ ຊື່ / ເບີໂທ..." class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5 flex-1 min-w-[160px]">
+    <div class="flex gap-1.5">
+      <button data-wsubtab="local" onclick="switchWorkerSubtab('local')" class="worker-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">ເພີ່ມເອງ</button>
+      <button data-wsubtab="ks" onclick="switchWorkerSubtab('ks')" class="worker-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">📥 ຈາກ KS Recruitment Agency</button>
     </div>
-    <div id="workersList" class="space-y-3"></div>
+
+    <div id="workerSubtab-local" class="space-y-4">
+      <div class="flex gap-2 flex-wrap text-[11px]">
+        <select id="workerStageFilter" onchange="renderWorkers()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
+          <option value="">ທຸກຂັ້ນຕອນ</option>
+          <option value="applied">ສະໝັກແລ້ວ</option>
+          <option value="training">ກຳລັງອົບຮົມ</option>
+          <option value="documents">ກຽມເອກະສານ/ວີຊາ</option>
+          <option value="deployed_waiting">ລໍຖ້າຈັດສົ່ງ</option>
+          <option value="working">ເຮັດວຽກຢູ່ໄທແລ້ວ</option>
+          <option value="cancelled">ຍົກເລີກ</option>
+        </select>
+        <input id="workerSearch" oninput="renderWorkers()" placeholder="ຄົ້ນຫາ ຊື່ / ເບີໂທ..." class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5 flex-1 min-w-[160px]">
+      </div>
+      <div id="workersList" class="space-y-3"></div>
+    </div>
+
+    <div id="workerSubtab-ks" class="hidden space-y-3">
+      <div id="ksWorkersEmptyNotice" class="hidden text-xs text-slate-500 text-center py-8">ຍັງບໍ່ໄດ້ນຳເຂົ້າຂໍ້ມູນຈາກ KS Recruitment Agency. ໄປທີ່ "⚙️ ຕັ້ງຄ່າ" ເພື່ອອັບໂຫລດໄຟລ໌ backup.</div>
+      <div id="ksWorkersBody" class="hidden space-y-3">
+        <p class="text-[10px] text-slate-500">📌 ຂໍ້ມູນນີ້ແມ່ນ <strong>ອ່ານຢ່າງດຽວ</strong> (snapshot ຈາກການນຳເຂົ້າຄັ້ງລ່າສຸດ) — ແກ້ໄຂໄດ້ສະເພາະໃນລະບົບ KS Recruitment Agency ເທົ່ານັ້ນ. <span id="ksImportedAtLabel"></span></p>
+        <input id="ksWorkerSearch" oninput="renderKsWorkers()" placeholder="ຄົ້ນຫາ ຊື່ / ເບີໂທ / ນາຍຈ້າງ / Lot..." class="glass-input w-full border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px]">
+        <div id="ksWorkersList" class="space-y-2"></div>
+        <div class="flex justify-center">
+          <button id="ksWorkersLoadMoreBtn" onclick="ksWorkersShowCount += 50; renderKsWorkers()" class="hidden text-[11px] font-bold px-4 py-2 rounded-xl bg-slate-800 border border-slate-700">ສະແດງເພີ່ມ...</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ===================== FINANCE ===================== -->
@@ -138,6 +158,12 @@
   <!-- ===================== CONTENT GENERATOR ===================== -->
   <section id="tab-content" class="tab-section hidden space-y-5">
     <h2 class="text-sm font-bold text-slate-200">ສ້າງຄອນເທນຮັບສະໝັກງານ (AI)</h2>
+    <div id="cfKsJobPickerWrap" class="hidden glass-panel rounded-2xl border border-indigo-900/60 p-3">
+      <label class="text-[11px] text-indigo-300 font-semibold">📥 ຫຼືເລືອກວຽກຈາກ KS Recruitment Agency ເພື່ອຕື່ມຂໍ້ມູນອັດຕະໂນມັດ</label>
+      <select id="cfKsJobPicker" onchange="fillContentFormFromKsJob()" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs mt-1">
+        <option value="">— ເລືອກວຽກ (ຫຼືຂ້າມ ແລະ ປ້ອນເອງຂ້າງລຸ່ມ) —</option>
+      </select>
+    </div>
     <div class="glass-panel rounded-2xl border border-slate-800 p-4 space-y-3">
       <div class="grid md:grid-cols-2 gap-3">
         <div>
@@ -192,6 +218,16 @@
       <div id="settingsMsg" class="text-[11px]"></div>
       <p class="text-[10px] text-slate-500 leading-relaxed">ເອົາ API key ໄດ້ຈາກ <a href="https://console.anthropic.com" target="_blank" class="text-indigo-400 underline">console.anthropic.com</a>. ກະລຸນາລະວັງ: ການສ້າງຄອນເທນແຕ່ລະຄັ້ງຈະເສຍຄ່າໃຊ້ຈ່າຍເລັກນ້ອຍ (ສົດໆ ສອງສາມເຊັນ) ຕາມການໃຊ້ງານ Anthropic API.</p>
     </div>
+
+    <div class="glass-panel rounded-2xl border border-slate-800 p-4 space-y-3 max-w-lg">
+      <h3 class="text-xs font-bold text-slate-200">📥 ນຳເຂົ້າຂໍ້ມູນຈາກ KS Recruitment Agency</h3>
+      <p class="text-[10px] text-slate-500 leading-relaxed">ເຂົ້າລະບົບ KS Recruitment Agency → ກົດ "ສຳຮອງຂໍ້ມູນ" ເພື່ອ download ໄຟລ໌ JSON → ອັບໂຫລດໄຟລ໌ນັ້ນຢູ່ນີ້. ຂໍ້ມູນແຮງງານ/ວຽກທີ່ນຳເຂົ້າຈະເປັນ <strong>ອ່ານຢ່າງດຽວ</strong> (ໃຊ້ອ້າງອີງໃນໜ້າ "ແຮງງານ", "ການອົບຮົມ" ແລະ "ສ້າງຄອນເທນ" — ບໍ່ປະທະກັບຂໍ້ມູນທີ່ເຈົ້າເພີ່ມເອງຢູ່ນີ້). ອັບໂຫລດໃໝ່ເວລາໃດກໍ່ໄດ້ທີ່ຢາກໃຫ້ຂໍ້ມູນທັນສະໄໝ — ຈະແທນຂໍ້ມູນເກົ່າທັງໝົດ.</p>
+      <input id="ksImportFile" type="file" accept="application/json,.json" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs">
+      <button id="ksImportBtn" onclick="importKsBackup()" class="text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-800">📥 ນຳເຂົ້າ</button>
+      <div id="ksImportMsg" class="text-[11px]"></div>
+      <div id="ksImportStatus" class="text-[11px] text-slate-400"></div>
+      <p class="text-[10px] text-amber-500/80 leading-relaxed">⚠️ ຂໍ້ມູນທີ່ນຳເຂົ້າມີຂໍ້ມູນສ່ວນຕົວຂອງແຮງງານ (ເລກໜັງສືຜ່ານແດນ, ວັນເດືອນປີເກີດ ແລະ ອື່ນໆ) — ຖ້າຈະ deploy ແອັບນີ້ຂຶ້ນອອນລາຍ ໃຫ້ຕັ້ງ SITE_PASSWORD ຕາມທີ່ບອກໄວ້ໃນ README ສະເໝີ.</p>
+    </div>
   </section>
 
 </div>
@@ -202,6 +238,12 @@ let finance = [];
 let training = [];
 let contentHistory = [];
 let currentTab = 'dashboard';
+let currentWorkerSubtab = 'local';
+let importedWorkers = [];
+let importedJobs = [];
+let importMeta = null;
+let workerLookupMap = {}; // label (as shown in the shared worker datalist) -> {id, source, name}
+let ksWorkersShowCount = 50; // client-side pagination for the (potentially 600+) imported worker list
 
 const STAGE_LABELS = {
   applied: 'ສະໝັກແລ້ວ', training: 'ກຳລັງອົບຮົມ', documents: 'ກຽມເອກະສານ/ວີຊາ',
@@ -396,6 +438,121 @@ function renderWorkers() {
   }).join('') : '<p class="text-xs text-slate-500 text-center py-8">ຍັງບໍ່ມີຂໍ້ມູນແຮງງານ. ກົດ "+ ເພີ່ມແຮງງານໃໝ່" ເພື່ອເລີ່ມຕົ້ນ.</p>';
 }
 
+// ---------------- Workers: KS Recruitment Agency import (read-only) ----------------
+function switchWorkerSubtab(tab) {
+  currentWorkerSubtab = tab;
+  document.getElementById('workerSubtab-local').classList.toggle('hidden', tab !== 'local');
+  document.getElementById('workerSubtab-ks').classList.toggle('hidden', tab !== 'ks');
+  document.querySelectorAll('.worker-subtab-btn').forEach((btn) => {
+    const active = btn.dataset.wsubtab === tab;
+    btn.classList.toggle('active-tab', active);
+    btn.classList.toggle('text-white', active);
+    btn.classList.toggle('bg-slate-900', !active);
+  });
+  if (tab === 'ks') renderKsWorkers();
+}
+
+// Builds the single shared <datalist> (used by the training-form worker
+// picker) out of BOTH locally-added workers and the read-only KS import, so
+// a training record can reference either one. Labels are kept unique by
+// including phone/employer context, since two workers can share a first
+// name. Re-run this any time `workers` or `importedWorkers` changes.
+function buildWorkerDatalist() {
+  workerLookupMap = {};
+  const options = [];
+  workers.forEach((w) => {
+    const label = `${w.name} (${w.phone || 'ບໍ່ມີເບີ'}) [ທ້ອງຖິ່ນ]`;
+    workerLookupMap[label] = { id: w.id, source: 'local', name: w.name };
+    options.push(label);
+  });
+  importedWorkers.forEach((w) => {
+    const name = [w.name, w.surname].filter(Boolean).join(' ') || w.namethai || '(ບໍ່ມີຊື່)';
+    const context = w.employer || w.lot || w.phone || w.id;
+    const label = `${name} (${context}) [KS]`;
+    workerLookupMap[label] = { id: w.id, source: 'ks', name };
+    options.push(label);
+  });
+  document.getElementById('workerDatalist').innerHTML = options.map((o) => `<option value="${escapeHtml(o)}">`).join('');
+}
+
+function ksWorkerDisplayName(w) {
+  return [w.name, w.surname].filter(Boolean).join(' ') || w.namethai || '(ບໍ່ມີຊື່)';
+}
+
+function renderKsWorkers() {
+  const hasImport = importedWorkers.length > 0;
+  document.getElementById('ksWorkersEmptyNotice').classList.toggle('hidden', hasImport);
+  document.getElementById('ksWorkersBody').classList.toggle('hidden', !hasImport);
+  if (!hasImport) return;
+
+  document.getElementById('ksImportedAtLabel').innerText = importMeta ? `(ນຳເຂົ້າລ່າສຸດ: ${fmtDate(importMeta.importedAt)})` : '';
+
+  const search = document.getElementById('ksWorkerSearch').value.trim().toLowerCase();
+  let list = importedWorkers;
+  if (search) {
+    list = list.filter((w) => {
+      const haystack = [ksWorkerDisplayName(w), w.namethai, w.phone, w.employer, w.lot, w.passportNo].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+
+  const shown = list.slice(0, ksWorkersShowCount);
+  document.getElementById('ksWorkersList').innerHTML = shown.length ? shown.map((w) => `
+    <div class="glass-panel rounded-xl border border-slate-800 p-3">
+      <div class="flex items-center justify-between flex-wrap gap-1">
+        <h4 class="text-xs font-bold text-slate-100">${escapeHtml(ksWorkerDisplayName(w))} ${w.namethai ? '<span class="text-slate-500 font-normal">(' + escapeHtml(w.namethai) + ')</span>' : ''}</h4>
+        ${w.status ? `<span class="stage-badge bg-slate-700 text-slate-300">${escapeHtml(w.status)}</span>` : ''}
+      </div>
+      <p class="text-[10px] text-slate-500 mt-1">${w.sex ? (w.sex === 'F' ? '👩' : '👨') + ' · ' : ''}${w.phone ? '📞 ' + escapeHtml(w.phone) + ' · ' : ''}${w.province ? '📍 ' + escapeHtml(w.province) : ''}</p>
+      <p class="text-[10px] text-slate-500">${w.employer ? '💼 ' + escapeHtml(w.employer) + ' · ' : ''}${w.lot ? escapeHtml(w.lot) : ''}</p>
+      ${w.docstatus ? `<p class="text-[10px] text-sky-400 mt-1">📄 ${escapeHtml(w.docstatus)}</p>` : ''}
+    </div>`).join('') : '<p class="text-xs text-slate-500 text-center py-8">ບໍ່ພົບແຮງງານທີ່ຄົ້ນຫາ.</p>';
+
+  document.getElementById('ksWorkersLoadMoreBtn').classList.toggle('hidden', list.length <= ksWorkersShowCount);
+}
+
+async function loadImportedData() {
+  const data = await api('GET', '/api/imported-data');
+  importedWorkers = data.importedWorkers || [];
+  importedJobs = data.importedJobs || [];
+  importMeta = data.importMeta || null;
+  buildWorkerDatalist();
+  populateKsJobPicker();
+  document.getElementById('ksImportStatus').innerText = importMeta
+    ? `ນຳເຂົ້າລ່າສຸດ: ${fmtDate(importMeta.importedAt)} — ແຮງງານ ${importMeta.workerCount} ຄົນ, ວຽກ ${importMeta.jobCount} ອັນ`
+    : 'ຍັງບໍ່ເຄີຍນຳເຂົ້າຂໍ້ມູນ.';
+  if (currentTab === 'workers' && currentWorkerSubtab === 'ks') renderKsWorkers();
+}
+
+async function importKsBackup() {
+  const fileInput = document.getElementById('ksImportFile');
+  const msg = document.getElementById('ksImportMsg');
+  const btn = document.getElementById('ksImportBtn');
+  msg.innerText = '';
+  msg.className = 'text-[11px]';
+  const file = fileInput.files[0];
+  if (!file) { msg.innerText = 'ກະລຸນາເລືອກໄຟລ໌ JSON ກ່ອນ.'; msg.className = 'text-[11px] text-red-400'; return; }
+  btn.disabled = true;
+  btn.innerText = '⏳ ກຳລັງນຳເຂົ້າ...';
+  try {
+    const text = await file.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (e) { throw new Error('ໄຟລ໌ນີ້ບໍ່ແມ່ນ JSON ທີ່ຖືກຕ້ອງ.'); }
+    const data = await api('POST', '/api/import/ks-backup', parsed);
+    msg.innerText = `✅ ນຳເຂົ້າສຳເລັດ! ແຮງງານ ${data.meta.workerCount} ຄົນ, ວຽກ ${data.meta.jobCount} ອັນ`;
+    msg.className = 'text-[11px] text-emerald-400';
+    fileInput.value = '';
+    await loadImportedData();
+    showToast('ນຳເຂົ້າຂໍ້ມູນຈາກ KS Recruitment Agency ສຳເລັດແລ້ວ!');
+  } catch (e) {
+    msg.innerText = e.message;
+    msg.className = 'text-[11px] text-red-400';
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '📥 ນຳເຂົ້າ';
+  }
+}
+
 // ---------------- Finance ----------------
 function openFinanceForm() {
   const workerOptions = workers.map((w) => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
@@ -496,17 +653,15 @@ function renderFinance() {
 
 // ---------------- Training ----------------
 function openTrainingForm() {
-  const workerOptions = workers.map((w) => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
   const html = `
   <div class="fixed inset-0 bg-black/70 z-40 flex items-center justify-center p-4" id="trainingModal" onclick="if(event.target===this) this.remove()">
     <div class="glass-panel border border-slate-700 rounded-2xl p-5 w-full max-w-md">
       <h3 class="text-sm font-bold mb-3">ເພີ່ມການອົບຮົມ</h3>
       <div class="space-y-2.5 text-xs">
         <div><label class="text-slate-400 font-semibold">ຫົວຂໍ້ການອົບຮົມ *</label><input id="tfTopic" placeholder="ເຊັ່ນ: ກົດໝາຍແຮງງານໄທ, ພາສາໄທພື້ນຖານ..." class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ແຮງງານ (ຖ້າມີ)</label>
-          <select id="tfWorker" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1">
-            <option value="">— ບໍ່ລະບຸ (ອົບຮົມລວມ) —</option>${workerOptions}
-          </select>
+        <div><label class="text-slate-400 font-semibold">ແຮງງານ (ຖ້າມີ) — ພິມຊື່ເພື່ອຄົ້ນຫາ (ທັງແຮງງານທີ່ເພີ່ມເອງ ແລະ ຈາກ KS)</label>
+          <input id="tfWorkerInput" list="workerDatalist" placeholder="ປະໄວ້ຫວ່າງ = ອົບຮົມລວມ" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1" oninput="resolveTfWorker()">
+          <input type="hidden" id="tfWorkerId"><input type="hidden" id="tfWorkerSource">
         </div>
         <div><label class="text-slate-400 font-semibold">ວັນທີ</label><input id="tfDate" type="date" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
         <div><label class="text-slate-400 font-semibold">ໝາຍເຫດ</label><textarea id="tfNotes" rows="2" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></textarea></div>
@@ -521,10 +676,24 @@ function openTrainingForm() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+// Resolves the free-typed worker-picker text against workerLookupMap (built
+// by buildWorkerDatalist from both local AND imported-KS workers) so a name
+// that exactly matches a known datalist option gets linked properly
+// (workerId + workerSource); anything else is just kept as plain typed text
+// (e.g. someone not yet in either system) with no id link.
+function resolveTfWorker() {
+  const typed = document.getElementById('tfWorkerInput').value;
+  const match = workerLookupMap[typed];
+  document.getElementById('tfWorkerId').value = match ? match.id : '';
+  document.getElementById('tfWorkerSource').value = match ? match.source : '';
+}
+
 async function saveTraining() {
   const payload = {
     topic: document.getElementById('tfTopic').value,
-    workerId: document.getElementById('tfWorker').value || null,
+    workerId: document.getElementById('tfWorkerId').value || null,
+    workerSource: document.getElementById('tfWorkerSource').value || 'local',
+    workerName: document.getElementById('tfWorkerInput').value.trim(),
     date: document.getElementById('tfDate').value,
     notes: document.getElementById('tfNotes').value,
     completed: document.getElementById('tfCompleted').checked,
@@ -547,12 +716,16 @@ async function deleteTraining(id) {
 
 function renderTraining() {
   document.getElementById('trainingList').innerHTML = training.length ? training.map((t) => {
-    const worker = workers.find((w) => w.id === t.workerId);
+    // Older records (saved before workerName existed) still resolve by
+    // looking the id up in the local workers list, same as before.
+    const legacyWorker = !t.workerName && t.workerId ? workers.find((w) => w.id === t.workerId) : null;
+    const displayName = t.workerName || (legacyWorker ? legacyWorker.name : '');
+    const sourceTag = t.workerSource === 'ks' ? ' <span class="text-indigo-400">(KS)</span>' : '';
     return `
     <div class="glass-panel rounded-xl border border-slate-800 p-3 flex items-center justify-between gap-2 flex-wrap">
       <div>
         <p class="text-xs font-semibold text-slate-200">${escapeHtml(t.topic)}</p>
-        <p class="text-[10px] text-slate-500 mt-0.5">${worker ? '👤 ' + escapeHtml(worker.name) + ' · ' : '👥 ອົບຮົມລວມ · '}${t.date ? fmtDate(t.date) : 'ບໍ່ລະບຸວັນທີ'}</p>
+        <p class="text-[10px] text-slate-500 mt-0.5">${displayName ? '👤 ' + escapeHtml(displayName) + sourceTag + ' · ' : '👥 ອົບຮົມລວມ · '}${t.date ? fmtDate(t.date) : 'ບໍ່ລະບຸວັນທີ'}</p>
         ${t.notes ? `<p class="text-[10px] text-slate-500 italic mt-0.5">${escapeHtml(t.notes)}</p>` : ''}
       </div>
       <div class="flex items-center gap-2">
@@ -565,6 +738,45 @@ function renderTraining() {
 }
 
 // ---------------- Content generator ----------------
+function populateKsJobPicker() {
+  const wrap = document.getElementById('cfKsJobPickerWrap');
+  const select = document.getElementById('cfKsJobPicker');
+  if (!importedJobs.length) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  select.innerHTML = '<option value="">— ເລືອກວຽກ (ຫຼືຂ້າມ ແລະ ປ້ອນເອງຂ້າງລຸ່ມ) —</option>' +
+    importedJobs.map((j) => `<option value="${j.id}">${escapeHtml(j.employer || '(ບໍ່ມີຊື່ນາຍຈ້າງ)')}${j.location ? ' — ' + escapeHtml(j.location) : ''}</option>`).join('');
+}
+
+// Prefills the content-generator form from a KS Recruitment Agency job
+// record the user picked, so they don't have to retype details the old
+// system already has. Extra contract/benefit fields that don't map to one
+// of our form inputs directly (work hours, accommodation, food, uniform,
+// social security, OT rate, pay date, etc.) are folded into the "notes"
+// field instead of being dropped, since the AI prompt reads notes too.
+function fillContentFormFromKsJob() {
+  const jobId = document.getElementById('cfKsJobPicker').value;
+  if (!jobId) return;
+  const job = importedJobs.find((j) => j.id === jobId);
+  if (!job) return;
+  document.getElementById('cfJobTitle').value = (job.jobdesc ? job.jobdesc.split('\n')[0].replace(/^[-•\s]+/, '') : '') || job.employer || '';
+  document.getElementById('cfDestination').value = [job.employer, job.location].filter(Boolean).join(' — ');
+  document.getElementById('cfPay').value = job.avgincome || job.wage || '';
+  document.getElementById('cfRequirements').value = job.age ? `ອາຍຸ ${job.age}` : '';
+  const extraLines = [
+    job.workhours ? `ເວລາເຮັດວຽກ: ${job.workhours}` : '',
+    job.dayoff ? `ວັນພັກ: ${job.dayoff}` : '',
+    job.accommodation || job.accomcost ? `ທີ່ພັກ: ${job.accommodation || job.accomcost}` : '',
+    job.food ? `ອາຫານ: ${job.food}` : '',
+    job.uniform ? `ຊຸດເຄື່ອງແບບ: ${job.uniform}` : '',
+    job.social ? `ປະກັນສັງຄົມ: ${job.social}` : '',
+    job.ot && job.ot !== 'ບໍ່ມີ' ? `OT: ${job.ot}` : '',
+    job.paydate ? `ວັນຈ່າຍເງິນເດືອນ: ${job.paydate}` : '',
+    job.note ? `ໝາຍເຫດ: ${job.note}` : '',
+  ].filter(Boolean);
+  document.getElementById('cfNotes').value = extraLines.join('\n');
+  showToast('ຕື່ມຂໍ້ມູນຈາກວຽກ KS ແລ້ວ — ກວດສອບ/ແກ້ໄຂໄດ້ກ່ອນສ້າງຄອນເທນ.');
+}
+
 async function generateContent() {
   const btn = document.getElementById('cfGenerateBtn');
   const errEl = document.getElementById('cfError');
@@ -677,6 +889,7 @@ async function loadAll() {
   workers = w.workers || [];
   finance = f.finance || [];
   training = t.training || [];
+  buildWorkerDatalist(); // local workers changed -- keep the shared training-form picker in sync
   renderWorkers();
   renderFinance();
   renderTraining();
@@ -685,9 +898,11 @@ async function loadAll() {
 
 (async function init() {
   switchTab('dashboard');
+  switchWorkerSubtab('local');
   await checkApiStatus();
   await loadAll();
   await loadContentHistory();
+  await loadImportedData();
 })();
 </script>
 </body>
