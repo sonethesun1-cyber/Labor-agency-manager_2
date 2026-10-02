@@ -60,8 +60,6 @@
 
   <!-- Tabs -->
   <nav class="flex gap-1.5 mb-6 overflow-x-auto pb-1" id="tabNav">
-    <button data-tab="dashboard" onclick="switchTab('dashboard')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-900 whitespace-nowrap">📊 ພາບລວມ</button>
-    <button data-tab="workers" onclick="switchTab('workers')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-900 whitespace-nowrap">👷 ແຮງງານ</button>
     <button data-tab="finance" onclick="switchTab('finance')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-900 whitespace-nowrap">💰 ບັນຊີການເງິນ</button>
     <button data-tab="training" onclick="switchTab('training')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-900 whitespace-nowrap">🎓 ການອົບຮົມ</button>
     <button data-tab="content" onclick="switchTab('content')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-900 whitespace-nowrap">📱 ສ້າງຄອນເທນ</button>
@@ -71,47 +69,39 @@
   <div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-800 border border-indigo-600 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl z-50"></div>
   <datalist id="workerDatalist"></datalist>
 
-  <!-- ===================== DASHBOARD ===================== -->
-  <section id="tab-dashboard" class="tab-section space-y-5">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="dashCards"></div>
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <h3 class="text-xs font-bold text-slate-300 mb-3">ແຮງງານຕາມຂັ້ນຕອນ (Pipeline)</h3>
-      <div id="dashPipeline" class="grid grid-cols-2 md:grid-cols-5 gap-2"></div>
-    </div>
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <h3 class="text-xs font-bold text-slate-300 mb-3">ລາຍການຄ້າງຊຳລະ (ໃກ້ກຳນົດ)</h3>
-      <div id="dashDue" class="space-y-2 text-xs"></div>
-    </div>
-  </section>
-
-  <!-- ===================== WORKERS ===================== -->
-  <section id="tab-workers" class="tab-section hidden space-y-4">
-    <div class="flex items-center justify-between flex-wrap gap-2">
-      <h2 class="text-sm font-bold text-slate-200">ລາຍຊື່ແຮງງານ / ຜູ້ສະໝັກ</h2>
-      <button onclick="openWorkerForm()" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 shadow-lg shadow-indigo-900/30">+ ເພີ່ມແຮງງານໃໝ່</button>
-    </div>
-    <div class="flex gap-1.5">
-      <button data-wsubtab="local" onclick="switchWorkerSubtab('local')" class="worker-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">ເພີ່ມເອງ</button>
-      <button data-wsubtab="ks" onclick="switchWorkerSubtab('ks')" class="worker-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">📥 ຈາກ KS Recruitment Agency</button>
+  <!-- ===================== FINANCE ===================== -->
+  <section id="tab-finance" class="tab-section space-y-4">
+    <h2 class="text-sm font-bold text-slate-200">ບັນຊີການເງິນ</h2>
+    <div class="flex gap-1.5 flex-wrap">
+      <button data-fsubtab="ledger" onclick="switchFinanceSubtab('ledger')" class="finance-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">💰 ບັນຊີ</button>
+      <button data-fsubtab="ks" onclick="switchFinanceSubtab('ks')" class="finance-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">📥 ຈາກ KS</button>
+      <button data-fsubtab="lots" onclick="switchFinanceSubtab('lots')" class="finance-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">🧮 ຄິດໄລ່ຕາມ Lot</button>
+      <button data-fsubtab="runaway" onclick="switchFinanceSubtab('runaway')" class="finance-subtab-btn text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700">⚠️ ແຮງງານໜີ</button>
     </div>
 
-    <div id="workerSubtab-local" class="space-y-4">
-      <div class="flex gap-2 flex-wrap text-[11px]">
-        <select id="workerStageFilter" onchange="renderWorkers()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
-          <option value="">ທຸກຂັ້ນຕອນ</option>
-          <option value="applied">ສະໝັກແລ້ວ</option>
-          <option value="training">ກຳລັງອົບຮົມ</option>
-          <option value="documents">ກຽມເອກະສານ/ວີຊາ</option>
-          <option value="deployed_waiting">ລໍຖ້າຈັດສົ່ງ</option>
-          <option value="working">ເຮັດວຽກຢູ່ໄທແລ້ວ</option>
-          <option value="cancelled">ຍົກເລີກ</option>
-        </select>
-        <input id="workerSearch" oninput="renderWorkers()" placeholder="ຄົ້ນຫາ ຊື່ / ເບີໂທ..." class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5 flex-1 min-w-[160px]">
+    <!-- ---- Finance: ledger (manual receivable/payable) ---- -->
+    <div id="financeSubtab-ledger" class="space-y-4">
+      <div class="flex items-center justify-end">
+        <button onclick="openFinanceForm()" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 shadow-lg shadow-indigo-900/30">+ ເພີ່ມລາຍການ</button>
       </div>
-      <div id="workersList" class="space-y-3"></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="financeSummary"></div>
+      <div class="flex gap-2 flex-wrap text-[11px]">
+        <select id="financeTypeFilter" onchange="renderFinance()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
+          <option value="">ທັງ 2 ປະເພດ</option>
+          <option value="receivable">ໜີ້ໄດ້ຮັບ (ລູກໜີ້)</option>
+          <option value="payable">ໜີ້ຕ້ອງຈ່າຍ (ເຈົ້າໜີ້)</option>
+        </select>
+        <select id="financeStatusFilter" onchange="renderFinance()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
+          <option value="">ທຸກສະຖານະ</option>
+          <option value="unpaid">ຄ້າງຢູ່</option>
+          <option value="paid">ຊຳລະແລ້ວ</option>
+        </select>
+      </div>
+      <div id="financeList" class="space-y-2"></div>
     </div>
 
-    <div id="workerSubtab-ks" class="hidden space-y-3">
+    <!-- ---- Finance: read-only KS worker browser (moved here from the old Workers tab) ---- -->
+    <div id="financeSubtab-ks" class="hidden space-y-3">
       <div id="ksWorkersEmptyNotice" class="hidden text-xs text-slate-500 text-center py-8">ຍັງບໍ່ໄດ້ນຳເຂົ້າຂໍ້ມູນຈາກ KS Recruitment Agency. ໄປທີ່ "⚙️ ຕັ້ງຄ່າ" ເພື່ອອັບໂຫລດໄຟລ໌ backup.</div>
       <div id="ksWorkersBody" class="hidden space-y-3">
         <p class="text-[10px] text-slate-500">📌 ຂໍ້ມູນນີ້ແມ່ນ <strong>ອ່ານຢ່າງດຽວ</strong> (snapshot ຈາກການນຳເຂົ້າຄັ້ງລ່າສຸດ) — ແກ້ໄຂໄດ້ສະເພາະໃນລະບົບ KS Recruitment Agency ເທົ່ານັ້ນ. <span id="ksImportedAtLabel"></span></p>
@@ -122,28 +112,22 @@
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- ===================== FINANCE ===================== -->
-  <section id="tab-finance" class="tab-section hidden space-y-4">
-    <div class="flex items-center justify-between flex-wrap gap-2">
-      <h2 class="text-sm font-bold text-slate-200">ບັນຊີການເງິນ (ໜີ້ໄດ້ຮັບ / ໜີ້ຕ້ອງຈ່າຍ)</h2>
-      <button onclick="openFinanceForm()" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 shadow-lg shadow-indigo-900/30">+ ເພີ່ມລາຍການ</button>
+    <!-- ---- Finance: per-Lot income/expense calculator ---- -->
+    <div id="financeSubtab-lots" class="hidden space-y-3">
+      <p class="text-[10px] text-slate-500 leading-relaxed">ຄິດໄລ່ອັດຕະໂນມັດຈາກຂໍ້ມູນແຮງງານທີ່ນຳເຂົ້າຈາກ KS, ຈັດກຸ່ມຕາມ Lot. ຈຳນວນ "ກຽມເດີນທາງ"/"ບໍ່ເດີນທາງ" ແມ່ນແບ່ງອັດຕະໂນມັດຈາກສະຖານະຂອງແຮງງານໃນ KS (ຖ້າຜິດພາດ ກະລຸນາແກ້ໄຂສະຖານະໃນລະບົບ KS ແລ້ວນຳເຂົ້າໃໝ່). ກະລຸນາປ້ອນລາຄາຕໍ່ຄົນຂອງແຕ່ລະ Lot ເອງ.</p>
+      <div id="lotsEmptyNotice" class="hidden text-xs text-slate-500 text-center py-8">ຍັງບໍ່ມີຂໍ້ມູນ Lot — ນຳເຂົ້າຂໍ້ມູນຈາກ KS ກ່ອນ (ໜ້າ "⚙️ ຕັ້ງຄ່າ").</div>
+      <div id="lotsList" class="space-y-3"></div>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="financeSummary"></div>
-    <div class="flex gap-2 flex-wrap text-[11px]">
-      <select id="financeTypeFilter" onchange="renderFinance()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
-        <option value="">ທັງ 2 ປະເພດ</option>
-        <option value="receivable">ໜີ້ໄດ້ຮັບ (ລູກໜີ້)</option>
-        <option value="payable">ໜີ້ຕ້ອງຈ່າຍ (ເຈົ້າໜີ້)</option>
-      </select>
-      <select id="financeStatusFilter" onchange="renderFinance()" class="glass-input border border-slate-700 rounded-lg px-2.5 py-1.5">
-        <option value="">ທຸກສະຖານະ</option>
-        <option value="unpaid">ຄ້າງຢູ່</option>
-        <option value="paid">ຊຳລະແລ້ວ</option>
-      </select>
+
+    <!-- ---- Finance: runaway workers / debt-acknowledgment PDF ---- -->
+    <div id="financeSubtab-runaway" class="hidden space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <p class="text-[10px] text-slate-500 leading-relaxed max-w-md">ສຳລັບແຮງງານທີ່ສົ່ງໄປແລ້ວ ແຕ່ຕໍ່ມາ "ໜີ" ຫຼືບໍ່ປະຕິບັດຕາມສັນຍາ — ບັນທຶກຕົວແທນທີ່ຮັບຜິດຊອບ ແລະ ຄ່າປັບໄໝ, ແລ້ວສ້າງໃບສັນຍານຳໜີ້ເປັນ PDF ໄດ້ທັນທີ.</p>
+        <button onclick="openRunawayForm()" class="text-xs font-bold px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 shadow-lg shadow-indigo-900/30 flex-shrink-0">+ ບັນທຶກແຮງງານໜີ</button>
+      </div>
+      <div id="runawayList" class="space-y-2"></div>
     </div>
-    <div id="financeList" class="space-y-2"></div>
   </section>
 
   <!-- ===================== TRAINING ===================== -->
@@ -176,6 +160,15 @@
             <option value="tiktok">TikTok</option>
             <option value="facebook">Facebook</option>
           </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-[11px] text-slate-400 font-semibold">ຮູບແບບຄອນເທນ</label>
+          <select id="cfFormat" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs mt-1">
+            <option value="standard">📋 ມາດຕະຖານ — ແຈ້ງລາຍລະອຽດວຽກກົງໄປກົງມາ</option>
+            <option value="testimonial">🗣️ ປະສົບການຈິງ — ເລົ່າຈາກມຸມແຮງງານທີ່ໄດ້ວຽກແລ້ວ</option>
+            <option value="before_after">🔄 Before/After —ປຽບທຽບຊີວິດກ່ອນ-ຫຼັງໄດ້ວຽກ</option>
+          </select>
+          <p class="text-[10px] text-slate-500 mt-1">ແຕ່ລະຄັ້ງຈະສ້າງໃຫ້ 3 ແບບ (hook ແຕກຕ່າງກັນ) ໃຫ້ເລືອກອັນທີ່ມ່ວນທີ່ສຸດ.</p>
         </div>
         <div>
           <label class="text-[11px] text-slate-400 font-semibold">ປາຍທາງ (ປະເທດ/ແຂວງ/ບໍລິສັດ)</label>
@@ -221,12 +214,31 @@
 
     <div class="glass-panel rounded-2xl border border-slate-800 p-4 space-y-3 max-w-lg">
       <h3 class="text-xs font-bold text-slate-200">📥 ນຳເຂົ້າຂໍ້ມູນຈາກ KS Recruitment Agency</h3>
-      <p class="text-[10px] text-slate-500 leading-relaxed">ເຂົ້າລະບົບ KS Recruitment Agency → ກົດ "ສຳຮອງຂໍ້ມູນ" ເພື່ອ download ໄຟລ໌ JSON → ອັບໂຫລດໄຟລ໌ນັ້ນຢູ່ນີ້. ຂໍ້ມູນແຮງງານ/ວຽກທີ່ນຳເຂົ້າຈະເປັນ <strong>ອ່ານຢ່າງດຽວ</strong> (ໃຊ້ອ້າງອີງໃນໜ້າ "ແຮງງານ", "ການອົບຮົມ" ແລະ "ສ້າງຄອນເທນ" — ບໍ່ປະທະກັບຂໍ້ມູນທີ່ເຈົ້າເພີ່ມເອງຢູ່ນີ້). ອັບໂຫລດໃໝ່ເວລາໃດກໍ່ໄດ້ທີ່ຢາກໃຫ້ຂໍ້ມູນທັນສະໄໝ — ຈະແທນຂໍ້ມູນເກົ່າທັງໝົດ.</p>
+      <p class="text-[10px] text-slate-500 leading-relaxed">ເຂົ້າລະບົບ KS Recruitment Agency → ກົດ "ສຳຮອງຂໍ້ມູນ" ເພື່ອ download ໄຟລ໌ JSON → ອັບໂຫລດໄຟລ໌ນັ້ນຢູ່ນີ້. ຂໍ້ມູນແຮງງານ/ວຽກທີ່ນຳເຂົ້າຈະເປັນ <strong>ອ່ານຢ່າງດຽວ</strong> (ໃຊ້ອ້າງອີງໃນໜ້າ "ບັນຊີການເງິນ", "ການອົບຮົມ" ແລະ "ສ້າງຄອນເທນ"). ອັບໂຫລດໃໝ່ເວລາໃດກໍ່ໄດ້ທີ່ຢາກໃຫ້ຂໍ້ມູນທັນສະໄໝ — ຈະແທນຂໍ້ມູນເກົ່າທັງໝົດ.</p>
       <input id="ksImportFile" type="file" accept="application/json,.json" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs">
       <button id="ksImportBtn" onclick="importKsBackup()" class="text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-800">📥 ນຳເຂົ້າ</button>
       <div id="ksImportMsg" class="text-[11px]"></div>
       <div id="ksImportStatus" class="text-[11px] text-slate-400"></div>
       <p class="text-[10px] text-amber-500/80 leading-relaxed">⚠️ ຂໍ້ມູນທີ່ນຳເຂົ້າມີຂໍ້ມູນສ່ວນຕົວຂອງແຮງງານ (ເລກໜັງສືຜ່ານແດນ, ວັນເດືອນປີເກີດ ແລະ ອື່ນໆ) — ຖ້າຈະ deploy ແອັບນີ້ຂຶ້ນອອນລາຍ ໃຫ້ຕັ້ງ SITE_PASSWORD ຕາມທີ່ບອກໄວ້ໃນ README ສະເໝີ.</p>
+    </div>
+
+    <div class="glass-panel rounded-2xl border border-slate-800 p-4 space-y-3 max-w-lg">
+      <h3 class="text-xs font-bold text-slate-200">🏢 ຂໍ້ມູນບໍລິສັດ (ສຳລັບໃບສັນຍານຳໜີ້ PDF)</h3>
+      <p class="text-[10px] text-slate-500 leading-relaxed">ໃຊ້ເປັນຫົວເອກະສານ/ລາຍເຊັນ ໃນໃບສັນຍານຳໜີ້ທີ່ສ້າງຈາກແທັບ "ບັນຊີການເງິນ → ⚠️ ແຮງງານໜີ".</p>
+      <div>
+        <label class="text-[11px] text-slate-400 font-semibold">ຊື່ບໍລິສັດ/ຫ້າງຮ້ານ</label>
+        <input id="companyNameInput" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs mt-1">
+      </div>
+      <div>
+        <label class="text-[11px] text-slate-400 font-semibold">ທີ່ຢູ່</label>
+        <input id="companyAddressInput" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs mt-1">
+      </div>
+      <div>
+        <label class="text-[11px] text-slate-400 font-semibold">ເບີໂທຕິດຕໍ່</label>
+        <input id="companyPhoneInput" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 text-xs mt-1">
+      </div>
+      <button onclick="saveCompanyInfo()" class="text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-800">💾 ບັນທຶກ</button>
+      <div id="companyInfoMsg" class="text-[11px]"></div>
     </div>
   </section>
 
@@ -237,24 +249,15 @@ let workers = [];
 let finance = [];
 let training = [];
 let contentHistory = [];
-let currentTab = 'dashboard';
-let currentWorkerSubtab = 'local';
+let currentTab = 'finance';
+let currentFinanceSubtab = 'ledger';
 let importedWorkers = [];
 let importedJobs = [];
 let importMeta = null;
 let workerLookupMap = {}; // label (as shown in the shared worker datalist) -> {id, source, name}
 let ksWorkersShowCount = 50; // client-side pagination for the (potentially 600+) imported worker list
-
-const STAGE_LABELS = {
-  applied: 'ສະໝັກແລ້ວ', training: 'ກຳລັງອົບຮົມ', documents: 'ກຽມເອກະສານ/ວີຊາ',
-  deployed_waiting: 'ລໍຖ້າຈັດສົ່ງ', working: 'ເຮັດວຽກຢູ່ໄທແລ້ວ', cancelled: 'ຍົກເລີກ',
-};
-const STAGE_COLORS = {
-  applied: 'bg-slate-700 text-slate-200', training: 'bg-amber-900/60 text-amber-300',
-  documents: 'bg-sky-900/60 text-sky-300', deployed_waiting: 'bg-indigo-900/60 text-indigo-300',
-  working: 'bg-emerald-900/60 text-emerald-300', cancelled: 'bg-red-950 text-red-400',
-};
-const STAGE_ORDER = ['applied', 'training', 'documents', 'deployed_waiting', 'working'];
+let runaways = [];
+let lastGeneratedPosts = []; // the 3 most recently generated content variants (for the copy button)
 
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -293,164 +296,26 @@ function switchTab(tab) {
     if (btn.dataset.tab === tab) { btn.classList.add('active-tab', 'text-white'); btn.classList.remove('bg-slate-900', 'text-slate-300'); }
     else { btn.classList.remove('active-tab', 'text-white'); btn.classList.add('bg-slate-900', 'text-slate-300'); }
   });
-  if (tab === 'dashboard') renderDashboard();
 }
 
-// ---------------- Dashboard ----------------
-function renderDashboard() {
-  const totalWorkers = workers.length;
-  const activePipeline = workers.filter((w) => w.stage !== 'cancelled' && w.stage !== 'working').length;
-  const totalReceivableUnpaid = finance.filter((f) => f.type === 'receivable' && f.status === 'unpaid').reduce((s, f) => s + Number(f.amount || 0), 0);
-  const totalPayableUnpaid = finance.filter((f) => f.type === 'payable' && f.status === 'unpaid').reduce((s, f) => s + Number(f.amount || 0), 0);
-
-  document.getElementById('dashCards').innerHTML = `
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ແຮງງານທັງໝົດ</p>
-      <p class="text-2xl font-extrabold text-slate-50">${totalWorkers}</p>
-    </div>
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ກຳລັງດຳເນີນການ</p>
-      <p class="text-2xl font-extrabold text-indigo-400">${activePipeline}</p>
-    </div>
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ໜີ້ໄດ້ຮັບ ຄ້າງຢູ່</p>
-      <p class="text-lg font-extrabold text-emerald-400">${fmtMoney(totalReceivableUnpaid)}</p>
-    </div>
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ໜີ້ຕ້ອງຈ່າຍ ຄ້າງຢູ່</p>
-      <p class="text-lg font-extrabold text-red-400">${fmtMoney(totalPayableUnpaid)}</p>
-    </div>`;
-
-  document.getElementById('dashPipeline').innerHTML = STAGE_ORDER.map((s) => {
-    const count = workers.filter((w) => w.stage === s).length;
-    return `<div class="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-center">
-      <p class="text-xl font-extrabold text-slate-100">${count}</p>
-      <p class="text-[10px] text-slate-400 mt-1">${STAGE_LABELS[s]}</p>
-    </div>`;
-  }).join('');
-
-  const dueSoon = finance.filter((f) => f.status === 'unpaid' && f.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 6);
-  document.getElementById('dashDue').innerHTML = dueSoon.length ? dueSoon.map((f) => `
-    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-      <span class="text-slate-300">${escapeHtml(f.description)} ${f.type === 'receivable' ? '<span class=\"text-emerald-400\">(ໜີ້ໄດ້ຮັບ)</span>' : '<span class=\"text-red-400\">(ໜີ້ຕ້ອງຈ່າຍ)</span>'}</span>
-      <span class="text-slate-400">${fmtDate(f.dueDate)} · ${fmtMoney(f.amount, f.currency)}</span>
-    </div>`).join('') : '<p class="text-slate-500">ບໍ່ມີລາຍການຄ້າງກຳນົດ.</p>';
-}
-
-// ---------------- Workers ----------------
-function openWorkerForm(existing) {
-  const w = existing || { name: '', phone: '', idCardNumber: '', village: '', jobType: '', destinationCompany: '', stage: 'applied', documents: {}, notes: '' };
-  const html = `
-  <div class="fixed inset-0 bg-black/70 z-40 flex items-center justify-center p-4" id="workerModal" onclick="if(event.target===this) this.remove()">
-    <div class="glass-panel border border-slate-700 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-      <h3 class="text-sm font-bold mb-3">${existing ? 'ແກ້ໄຂຂໍ້ມູນແຮງງານ' : 'ເພີ່ມແຮງງານໃໝ່'}</h3>
-      <div class="space-y-2.5 text-xs">
-        <div><label class="text-slate-400 font-semibold">ຊື່ ແລະ ນາມສະກຸນ *</label><input id="wfName" value="${escapeHtml(w.name)}" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ເບີໂທ *</label><input id="wfPhone" value="${escapeHtml(w.phone)}" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ເລກບັດປະຈຳຕົວ</label><input id="wfIdCard" value="${escapeHtml(w.idCardNumber)}" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ບ້ານ/ເມືອງ/ແຂວງ</label><input id="wfVillage" value="${escapeHtml(w.village)}" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ປະເພດວຽກ</label><input id="wfJobType" value="${escapeHtml(w.jobType)}" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ບໍລິສັດ/ນາຍຈ້າງປາຍທາງ</label><input id="wfDest" value="${escapeHtml(w.destinationCompany)}" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
-        <div><label class="text-slate-400 font-semibold">ຂັ້ນຕອນ</label>
-          <select id="wfStage" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1">
-            ${Object.keys(STAGE_LABELS).map((s) => `<option value="${s}" ${w.stage === s ? 'selected' : ''}>${STAGE_LABELS[s]}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="text-slate-400 font-semibold">ເອກະສານ</label>
-          <div class="grid grid-cols-2 gap-1.5 mt-1">
-            ${['passport:ໜັງສືຜ່ານແດນ', 'healthCheck:ກວດສຸຂະພາບ', 'contract:ສັນຍາແຮງງານ', 'visa:ວີຊາ', 'workPermit:ໃບອະນຸຍາດເຮັດວຽກ'].map((pair) => {
-              const [key, label] = pair.split(':');
-              return `<label class="flex items-center gap-1.5 text-[11px] text-slate-300"><input type="checkbox" id="wfDoc_${key}" ${w.documents && w.documents[key] ? 'checked' : ''}> ${label}</label>`;
-            }).join('')}
-          </div>
-        </div>
-        <div><label class="text-slate-400 font-semibold">ໝາຍເຫດ</label><textarea id="wfNotes" rows="2" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1">${escapeHtml(w.notes)}</textarea></div>
-      </div>
-      <div class="flex gap-2 mt-4">
-        <button onclick="document.getElementById('workerModal').remove()" class="flex-1 text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 border border-slate-700">ຍົກເລີກ</button>
-        <button onclick="saveWorker('${existing ? existing.id : ''}')" class="flex-1 text-xs font-bold px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700">ບັນທຶກ</button>
-      </div>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-async function saveWorker(id) {
-  const documents = {};
-  ['passport', 'healthCheck', 'contract', 'visa', 'workPermit'].forEach((key) => {
-    documents[key] = document.getElementById('wfDoc_' + key).checked;
+// ---------------- Finance: subtabs (ledger / KS workers / lots / runaway) ----------------
+function switchFinanceSubtab(tab) {
+  currentFinanceSubtab = tab;
+  ['ledger', 'ks', 'lots', 'runaway'].forEach((t) => {
+    document.getElementById('financeSubtab-' + t).classList.toggle('hidden', t !== tab);
   });
-  const payload = {
-    name: document.getElementById('wfName').value,
-    phone: document.getElementById('wfPhone').value,
-    idCardNumber: document.getElementById('wfIdCard').value,
-    village: document.getElementById('wfVillage').value,
-    jobType: document.getElementById('wfJobType').value,
-    destinationCompany: document.getElementById('wfDest').value,
-    stage: document.getElementById('wfStage').value,
-    documents,
-    notes: document.getElementById('wfNotes').value,
-  };
-  try {
-    if (id) await api('PUT', '/api/workers/' + id, payload);
-    else await api('POST', '/api/workers', payload);
-    document.getElementById('workerModal').remove();
-    await loadAll();
-    showToast('ບັນທຶກຂໍ້ມູນແຮງງານສຳເລັດແລ້ວ!');
-  } catch (e) { alert(e.message); }
-}
-
-async function deleteWorker(id) {
-  if (!confirm('ລຶບຂໍ້ມູນແຮງງານນີ້ແທ້ບໍ່? (ຈະລຶບລາຍການການເງິນ ແລະ ການອົບຮົມທີ່ກ່ຽວຂ້ອງນຳ)')) return;
-  try { await api('DELETE', '/api/workers/' + id); await loadAll(); showToast('ລຶບແລ້ວ.'); } catch (e) { alert(e.message); }
-}
-
-function renderWorkers() {
-  const stageFilter = document.getElementById('workerStageFilter').value;
-  const search = document.getElementById('workerSearch').value.trim().toLowerCase();
-  let list = workers;
-  if (stageFilter) list = list.filter((w) => w.stage === stageFilter);
-  if (search) list = list.filter((w) => (w.name + ' ' + w.phone).toLowerCase().includes(search));
-
-  document.getElementById('workersList').innerHTML = list.length ? list.map((w) => {
-    const docsOk = w.documents ? Object.values(w.documents).filter(Boolean).length : 0;
-    const docsTotal = w.documents ? Object.keys(w.documents).length : 5;
-    return `
-    <div class="glass-panel rounded-2xl border border-slate-800 p-4">
-      <div class="flex items-start justify-between gap-2 flex-wrap">
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <h3 class="text-sm font-bold text-slate-100">${escapeHtml(w.name)}</h3>
-            <span class="stage-badge ${STAGE_COLORS[w.stage] || 'bg-slate-700 text-slate-200'}">${STAGE_LABELS[w.stage] || w.stage}</span>
-          </div>
-          <p class="text-[11px] text-slate-400 mt-1">📞 ${escapeHtml(w.phone)} ${w.village ? '· 📍 ' + escapeHtml(w.village) : ''}</p>
-          ${w.jobType ? `<p class="text-[11px] text-slate-400">💼 ${escapeHtml(w.jobType)}${w.destinationCompany ? ' → ' + escapeHtml(w.destinationCompany) : ''}</p>` : ''}
-          <p class="text-[10px] text-slate-500 mt-1">ເອກະສານຄົບ: ${docsOk}/${docsTotal}</p>
-          ${w.notes ? `<p class="text-[11px] text-slate-500 mt-1 italic">${escapeHtml(w.notes)}</p>` : ''}
-        </div>
-        <div class="flex gap-1.5 flex-shrink-0">
-          <button onclick='openWorkerForm(${JSON.stringify(w).replace(/'/g, "&#39;")})' class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700">✏️ ແກ້ໄຂ</button>
-          <button onclick="deleteWorker('${w.id}')" class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-red-950 border border-red-900 text-red-400">🗑️</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('') : '<p class="text-xs text-slate-500 text-center py-8">ຍັງບໍ່ມີຂໍ້ມູນແຮງງານ. ກົດ "+ ເພີ່ມແຮງງານໃໝ່" ເພື່ອເລີ່ມຕົ້ນ.</p>';
-}
-
-// ---------------- Workers: KS Recruitment Agency import (read-only) ----------------
-function switchWorkerSubtab(tab) {
-  currentWorkerSubtab = tab;
-  document.getElementById('workerSubtab-local').classList.toggle('hidden', tab !== 'local');
-  document.getElementById('workerSubtab-ks').classList.toggle('hidden', tab !== 'ks');
-  document.querySelectorAll('.worker-subtab-btn').forEach((btn) => {
-    const active = btn.dataset.wsubtab === tab;
+  document.querySelectorAll('.finance-subtab-btn').forEach((btn) => {
+    const active = btn.dataset.fsubtab === tab;
     btn.classList.toggle('active-tab', active);
     btn.classList.toggle('text-white', active);
     btn.classList.toggle('bg-slate-900', !active);
   });
   if (tab === 'ks') renderKsWorkers();
+  if (tab === 'lots') loadLotsSummary();
+  if (tab === 'runaway') loadRunaways();
 }
+
+// ---------------- Workers: KS Recruitment Agency import (read-only) ----------------
 
 // Builds the single shared <datalist> (used by the training-form worker
 // picker) out of BOTH locally-added workers and the read-only KS import, so
@@ -521,7 +386,8 @@ async function loadImportedData() {
   document.getElementById('ksImportStatus').innerText = importMeta
     ? `ນຳເຂົ້າລ່າສຸດ: ${fmtDate(importMeta.importedAt)} — ແຮງງານ ${importMeta.workerCount} ຄົນ, ວຽກ ${importMeta.jobCount} ອັນ`
     : 'ຍັງບໍ່ເຄີຍນຳເຂົ້າຂໍ້ມູນ.';
-  if (currentTab === 'workers' && currentWorkerSubtab === 'ks') renderKsWorkers();
+  if (currentTab === 'finance' && currentFinanceSubtab === 'ks') renderKsWorkers();
+  if (currentTab === 'finance' && currentFinanceSubtab === 'lots') loadLotsSummary();
 }
 
 async function importKsBackup() {
@@ -553,9 +419,155 @@ async function importKsBackup() {
   }
 }
 
+// ---------------- Finance: Lot income/expense calculator ----------------
+// Lot names come straight from the KS export and can contain spaces,
+// slashes, quotes, or other characters that are unsafe to embed directly
+// into an HTML id/selector. So each rendered row is addressed by its plain
+// array INDEX (lotsCache[i].lot holds the real name), never by the lot text
+// itself, in either the element ids or the onclick argument.
+let lotsCache = [];
+
+async function loadLotsSummary() {
+  const data = await api('GET', '/api/lots-summary');
+  lotsCache = data.lots || [];
+  document.getElementById('lotsEmptyNotice').classList.toggle('hidden', lotsCache.length > 0);
+  document.getElementById('lotsList').innerHTML = lotsCache.map((l, i) => `
+    <div class="glass-panel rounded-2xl border border-slate-800 p-4 space-y-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h4 class="text-sm font-bold text-slate-100">📦 Lot: ${escapeHtml(l.lot)}</h4>
+        <span class="text-[11px] text-slate-400">ທັງໝົດ ${l.total} ຄົນ — ກຽມເດີນທາງ ${l.travelCount} ຄົນ, ບໍ່ເດີນທາງ ${l.nonTravelCount} ຄົນ</span>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-2 text-[11px]">
+        <div>
+          <label class="text-slate-400 font-semibold">ລາຄາ/ຄົນ ທີ່ເດີນທາງ (ລາຍຮັບ)</label>
+          <input type="number" min="0" id="lotPrice_${i}" value="${l.pricePerTraveler}" class="glass-input w-full border border-slate-700 rounded-lg px-2.5 py-1.5 mt-1">
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">ຄ່າປັບໄໝ/ຄົນ ທີ່ບໍ່ເດີນທາງ (ລາຍຈ່າຍ)</label>
+          <input type="number" min="0" id="lotFine_${i}" value="${l.finePerNonTraveler}" class="glass-input w-full border border-slate-700 rounded-lg px-2.5 py-1.5 mt-1">
+        </div>
+        <div>
+          <label class="text-slate-400 font-semibold">ສະກຸນເງິນ</label>
+          <select id="lotCurrency_${i}" class="glass-input w-full border border-slate-700 rounded-lg px-2.5 py-1.5 mt-1">
+            <option value="THB" ${l.currency === 'THB' ? 'selected' : ''}>ບາດ (THB)</option>
+            <option value="LAK" ${l.currency === 'LAK' ? 'selected' : ''}>ກີບ (LAK)</option>
+            <option value="USD" ${l.currency === 'USD' ? 'selected' : ''}>ໂດລາ (USD)</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="saveLotPricing(${i})" class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700">💾 ບັນທຶກລາຄາ</button>
+      <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-center">
+        <div><p class="text-[10px] text-slate-500 uppercase font-bold">ລາຍຮັບ</p><p class="text-sm font-extrabold text-emerald-400">${fmtMoney(l.income, l.currency)}</p></div>
+        <div><p class="text-[10px] text-slate-500 uppercase font-bold">ລາຍຈ່າຍ</p><p class="text-sm font-extrabold text-red-400">${fmtMoney(l.expense, l.currency)}</p></div>
+        <div><p class="text-[10px] text-slate-500 uppercase font-bold">ລວມທັງໝົດ</p><p class="text-sm font-extrabold text-slate-100">${fmtMoney(l.net, l.currency)}</p></div>
+      </div>
+    </div>`).join('');
+}
+
+async function saveLotPricing(index) {
+  const lot = lotsCache[index] && lotsCache[index].lot;
+  if (!lot) return;
+  try {
+    await api('POST', '/api/lot-finance', {
+      lot,
+      pricePerTraveler: document.getElementById('lotPrice_' + index).value,
+      finePerNonTraveler: document.getElementById('lotFine_' + index).value,
+      currency: document.getElementById('lotCurrency_' + index).value,
+    });
+    await loadLotsSummary();
+    showToast('ບັນທຶກລາຄາ Lot ສຳເລັດແລ້ວ!');
+  } catch (e) { alert(e.message); }
+}
+
+// ---------------- Finance: runaway workers / debt-acknowledgment PDF ----------------
+function openRunawayForm() {
+  const html = `
+  <div class="fixed inset-0 bg-black/70 z-40 flex items-center justify-center p-4" id="runawayModal" onclick="if(event.target===this) this.remove()">
+    <div class="glass-panel border border-slate-700 rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h3 class="text-sm font-bold mb-3">ບັນທຶກແຮງງານໜີ (ຫຼັງຈາກສົ່ງແລ້ວ)</h3>
+      <div class="space-y-2.5 text-xs">
+        <div><label class="text-slate-400 font-semibold">ແຮງງານ *</label>
+          <input id="rfWorkerInput" list="workerDatalist" placeholder="ພິມຊື່ເພື່ອຄົ້ນຫາ (ທັງທ້ອງຖິ່ນ ແລະ ຈາກ KS)" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1" oninput="resolveRfWorker()">
+          <input type="hidden" id="rfWorkerId"><input type="hidden" id="rfWorkerSource">
+        </div>
+        <div><label class="text-slate-400 font-semibold">Lot (ຖ້າມີ)</label><input id="rfLot" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
+        <div><label class="text-slate-400 font-semibold">ຕົວແທນ/ຜູ້ຄ້ຳປະກັນ *</label><input id="rfAgent" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="text-slate-400 font-semibold">ຈຳນວນເງິນຄ່າປັບໄໝ *</label><input id="rfFine" type="number" min="0" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
+          <div><label class="text-slate-400 font-semibold">ສະກຸນເງິນ</label>
+            <select id="rfCurrency" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1">
+              <option value="THB">ບາດ (THB)</option><option value="LAK">ກີບ (LAK)</option><option value="USD">ໂດລາ (USD)</option>
+            </select>
+          </div>
+        </div>
+        <div><label class="text-slate-400 font-semibold">ວັນທີ</label><input id="rfDate" type="date" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
+        <div><label class="text-slate-400 font-semibold">ໝາຍເຫດ</label><textarea id="rfNotes" rows="2" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></textarea></div>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="document.getElementById('runawayModal').remove()" class="flex-1 text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 border border-slate-700">ຍົກເລີກ</button>
+        <button onclick="saveRunaway()" class="flex-1 text-xs font-bold px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700">ບັນທຶກ</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function resolveRfWorker() {
+  const typed = document.getElementById('rfWorkerInput').value;
+  const match = workerLookupMap[typed];
+  document.getElementById('rfWorkerId').value = match ? match.id : '';
+  document.getElementById('rfWorkerSource').value = match ? match.source : '';
+}
+
+async function saveRunaway() {
+  const payload = {
+    workerId: document.getElementById('rfWorkerId').value || null,
+    workerSource: document.getElementById('rfWorkerSource').value || 'local',
+    workerName: document.getElementById('rfWorkerInput').value.trim(),
+    lot: document.getElementById('rfLot').value,
+    agent: document.getElementById('rfAgent').value,
+    fineAmount: document.getElementById('rfFine').value,
+    currency: document.getElementById('rfCurrency').value,
+    date: document.getElementById('rfDate').value,
+    notes: document.getElementById('rfNotes').value,
+  };
+  try {
+    await api('POST', '/api/runaways', payload);
+    document.getElementById('runawayModal').remove();
+    await loadRunaways();
+    showToast('ບັນທຶກແຮງງານໜີສຳເລັດແລ້ວ!');
+  } catch (e) { alert(e.message); }
+}
+
+async function deleteRunaway(id) {
+  if (!confirm('ລຶບລາຍການນີ້ແທ້ບໍ່?')) return;
+  try { await api('DELETE', '/api/runaways/' + id); await loadRunaways(); showToast('ລຶບແລ້ວ.'); } catch (e) { alert(e.message); }
+}
+
+function downloadRunawayPdf(id) {
+  window.open('/api/runaways/' + id + '/pdf', '_blank');
+}
+
+async function loadRunaways() {
+  const data = await api('GET', '/api/runaways');
+  runaways = data.runaways || [];
+  document.getElementById('runawayList').innerHTML = runaways.length ? runaways.map((r) => `
+    <div class="glass-panel rounded-xl border border-slate-800 p-3 flex items-center justify-between gap-2 flex-wrap">
+      <div>
+        <p class="text-xs font-semibold text-slate-200">${escapeHtml(r.workerName)} ${r.workerSource === 'ks' ? '<span class="text-indigo-400">(KS)</span>' : ''}</p>
+        <p class="text-[10px] text-slate-500 mt-0.5">🏷️ ${escapeHtml(r.agent)} ${r.lot ? '· 📦 ' + escapeHtml(r.lot) : ''} · ${fmtDate(r.date)}</p>
+        <p class="text-[10px] text-red-400 font-bold mt-0.5">ຄ່າປັບໄໝ: ${fmtMoney(r.fineAmount, r.currency)}</p>
+        ${r.notes ? `<p class="text-[10px] text-slate-500 italic mt-0.5">${escapeHtml(r.notes)}</p>` : ''}
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="downloadRunawayPdf('${r.id}')" class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-indigo-900/60 border border-indigo-800 text-indigo-300">📄 ໃບສັນຍາ PDF</button>
+        <button onclick="deleteRunaway('${r.id}')" class="text-[10px] font-bold px-2 py-1.5 rounded-lg bg-red-950 border border-red-900 text-red-400">🗑️</button>
+      </div>
+    </div>`).join('') : '<p class="text-xs text-slate-500 text-center py-8">ຍັງບໍ່ມີລາຍການແຮງງານໜີ.</p>';
+}
+
 // ---------------- Finance ----------------
 function openFinanceForm() {
-  const workerOptions = workers.map((w) => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
   const html = `
   <div class="fixed inset-0 bg-black/70 z-40 flex items-center justify-center p-4" id="financeModal" onclick="if(event.target===this) this.remove()">
     <div class="glass-panel border border-slate-700 rounded-2xl p-5 w-full max-w-md" >
@@ -574,10 +586,9 @@ function openFinanceForm() {
             <option value="LAK">ກີບ (LAK)</option><option value="THB">ບາດ (THB)</option><option value="USD">ໂດລາ (USD)</option>
           </select>
         </div>
-        <div><label class="text-slate-400 font-semibold">ກ່ຽວຂ້ອງກັບແຮງງານ (ຖ້າມີ)</label>
-          <select id="ffWorker" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1">
-            <option value="">— ບໍ່ລະບຸ —</option>${workerOptions}
-          </select>
+        <div><label class="text-slate-400 font-semibold">ກ່ຽວຂ້ອງກັບແຮງງານ (ຖ້າມີ) — ພິມຊື່ເພື່ອຄົ້ນຫາ</label>
+          <input id="ffWorkerInput" list="workerDatalist" placeholder="ປະໄວ້ຫວ່າງ = ບໍ່ລະບຸ" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1" oninput="resolveFfWorker()">
+          <input type="hidden" id="ffWorkerId"><input type="hidden" id="ffWorkerSource">
         </div>
         <div><label class="text-slate-400 font-semibold">ກຳນົດຊຳລະ</label><input id="ffDueDate" type="date" class="glass-input w-full border border-slate-700 rounded-lg px-3 py-2 mt-1"></div>
       </div>
@@ -590,13 +601,22 @@ function openFinanceForm() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+function resolveFfWorker() {
+  const typed = document.getElementById('ffWorkerInput').value;
+  const match = workerLookupMap[typed];
+  document.getElementById('ffWorkerId').value = match ? match.id : '';
+  document.getElementById('ffWorkerSource').value = match ? match.source : '';
+}
+
 async function saveFinance() {
   const payload = {
     type: document.getElementById('ffType').value,
     description: document.getElementById('ffDesc').value,
     amount: document.getElementById('ffAmount').value,
     currency: document.getElementById('ffCurrency').value,
-    workerId: document.getElementById('ffWorker').value || null,
+    workerId: document.getElementById('ffWorkerId').value || null,
+    workerSource: document.getElementById('ffWorkerSource').value || 'local',
+    workerName: document.getElementById('ffWorkerInput').value.trim(),
     dueDate: document.getElementById('ffDueDate').value,
   };
   try {
@@ -634,12 +654,16 @@ function renderFinance() {
     <div class="glass-panel rounded-2xl border border-slate-800 p-3"><p class="text-[10px] text-slate-400 font-bold uppercase">ຈ່າຍແລ້ວ</p><p class="text-base font-extrabold text-slate-300">${fmtMoney(paidP)}</p></div>`;
 
   document.getElementById('financeList').innerHTML = list.length ? list.map((f) => {
-    const worker = workers.find((w) => w.id === f.workerId);
+    // Older records (saved before workerName existed) still resolve by id
+    // against the local workers list, same fallback pattern as training.
+    const legacyWorker = !f.workerName && f.workerId ? workers.find((w) => w.id === f.workerId) : null;
+    const displayName = f.workerName || (legacyWorker ? legacyWorker.name : '');
+    const sourceTag = f.workerSource === 'ks' ? ' <span class="text-indigo-400">(KS)</span>' : '';
     return `
     <div class="glass-panel rounded-xl border border-slate-800 p-3 flex items-center justify-between gap-2 flex-wrap">
       <div>
         <p class="text-xs font-semibold text-slate-200">${escapeHtml(f.description)} <span class="${f.type === 'receivable' ? 'text-emerald-400' : 'text-red-400'} text-[10px] font-bold">${f.type === 'receivable' ? '(ໜີ້ໄດ້ຮັບ)' : '(ໜີ້ຕ້ອງຈ່າຍ)'}</span></p>
-        <p class="text-[10px] text-slate-500 mt-0.5">${worker ? '👤 ' + escapeHtml(worker.name) + ' · ' : ''}${f.dueDate ? 'ກຳນົດ: ' + fmtDate(f.dueDate) : 'ບໍ່ມີກຳນົດ'}</p>
+        <p class="text-[10px] text-slate-500 mt-0.5">${displayName ? '👤 ' + escapeHtml(displayName) + sourceTag + ' · ' : ''}${f.dueDate ? 'ກຳນົດ: ' + fmtDate(f.dueDate) : 'ບໍ່ມີກຳນົດ'}</p>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-sm font-extrabold ${f.type === 'receivable' ? 'text-emerald-400' : 'text-red-400'}">${fmtMoney(f.amount, f.currency)}</span>
@@ -789,14 +813,16 @@ async function generateContent() {
   try {
     const data = await api('POST', '/api/generate-content', {
       jobTitle, platform,
+      format: document.getElementById('cfFormat').value,
       destination: document.getElementById('cfDestination').value,
       pay: document.getElementById('cfPay').value,
       requirements: document.getElementById('cfRequirements').value,
       notes: document.getElementById('cfNotes').value,
     });
-    renderContentResult(data.post);
+    lastGeneratedPosts = data.posts || [];
+    renderContentResult(lastGeneratedPosts);
     await loadContentHistory();
-    showToast('ສ້າງຄອນເທນສຳເລັດແລ້ວ!');
+    showToast('ສ້າງຄອນເທນສຳເລັດແລ້ວ! (3 ແບບໃຫ້ເລືອກ)');
   } catch (e) {
     errEl.innerText = e.message;
     errEl.classList.remove('hidden');
@@ -806,11 +832,17 @@ async function generateContent() {
   }
 }
 
+const FORMAT_LABELS = { standard: '📋 ມາດຕະຖານ', testimonial: '🗣️ ປະສົບການຈິງ', before_after: '🔄 Before/After' };
+
 function contentCardHtml(post, showDelete) {
   return `
     <div class="glass-panel rounded-2xl border border-slate-800 p-4 space-y-2">
-      <div class="flex items-center justify-between">
-        <span class="stage-badge bg-indigo-900/60 text-indigo-300">${post.platform === 'tiktok' ? 'TikTok' : 'Facebook'}</span>
+      <div class="flex items-center justify-between flex-wrap gap-1">
+        <div class="flex items-center gap-1.5">
+          <span class="stage-badge bg-indigo-900/60 text-indigo-300">${post.platform === 'tiktok' ? 'TikTok' : 'Facebook'}</span>
+          ${post.format ? `<span class="stage-badge bg-slate-700 text-slate-300">${FORMAT_LABELS[post.format] || post.format}</span>` : ''}
+          ${post.variantIndex ? `<span class="stage-badge bg-slate-800 text-slate-400">#${post.variantIndex}</span>` : ''}
+        </div>
         <div class="flex items-center gap-2">
           <span class="text-[10px] text-slate-500">${fmtDate(post.createdAt)}</span>
           ${showDelete ? `<button onclick="deleteContentHistory('${post.id}')" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-red-950 border border-red-900 text-red-400">🗑️</button>` : ''}
@@ -819,19 +851,25 @@ function contentCardHtml(post, showDelete) {
       <p class="text-xs font-bold text-slate-100">${escapeHtml(post.hook)}</p>
       <p class="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">${escapeHtml(post.caption)}</p>
       <p class="text-[11px] text-sky-400">${escapeHtml(post.hashtags)}</p>
-      ${post.videoIdeaIfTiktok ? `<div class="bg-slate-900/80 border border-dashed border-sky-800/60 rounded-lg p-2 text-[11px] text-sky-200/90"><strong>💡 ไอເດຍວິດີໂອ:</strong> ${escapeHtml(post.videoIdeaIfTiktok)}</div>` : ''}
+      ${post.videoIdeaIfTiktok ? `<div class="bg-slate-900/80 border border-dashed border-sky-800/60 rounded-lg p-2 text-[11px] text-sky-200/90"><strong>💡 ໄອເດຍວິດີໂອ:</strong> ${escapeHtml(post.videoIdeaIfTiktok)}</div>` : ''}
+      ${post.audioMoodIfTiktok ? `<div class="bg-slate-900/80 border border-dashed border-amber-800/60 rounded-lg p-2 text-[11px] text-amber-200/90"><strong>🎵 ແນະນຳສຽງ/ເພງ:</strong> ${escapeHtml(post.audioMoodIfTiktok)} <span class="text-slate-500">(ຄົ້ນຫາອາລົມນີ້ໃນ TikTok trending sounds ຕອນລົງໂພສ)</span></div>` : ''}
       <button onclick="copyPost('${post.id}')" class="text-[10px] font-bold text-indigo-400 hover:underline">📋 Copy ຄອນເທນທັງໝົດ</button>
     </div>`;
 }
 
-function renderContentResult(post) {
-  document.getElementById('cfResult').innerHTML = contentCardHtml(post, false);
+function renderContentResult(posts) {
+  const list = Array.isArray(posts) ? posts : [posts];
+  document.getElementById('cfResult').innerHTML = `
+    <h3 class="text-xs font-bold text-slate-400 mb-2">ຜົນລັບ — ເລືອກອັນທີ່ມ່ວນທີ່ສຸດ</h3>
+    <div class="grid md:grid-cols-3 gap-3">${list.map((p) => contentCardHtml(p, false)).join('')}</div>`;
 }
 
 function copyPost(id) {
-  const post = contentHistory.find((p) => p.id === id) || (window._lastGenerated && window._lastGenerated.id === id ? window._lastGenerated : null);
+  const post = contentHistory.find((p) => p.id === id) || lastGeneratedPosts.find((p) => p.id === id);
   if (!post) return;
-  const text = `${post.hook}\n\n${post.caption}\n\n${post.hashtags}` + (post.videoIdeaIfTiktok ? `\n\n[ไอເດຍວິດີໂອ] ${post.videoIdeaIfTiktok}` : '');
+  const text = `${post.hook}\n\n${post.caption}\n\n${post.hashtags}` +
+    (post.videoIdeaIfTiktok ? `\n\n[ໄອເດຍວິດີໂອ] ${post.videoIdeaIfTiktok}` : '') +
+    (post.audioMoodIfTiktok ? `\n\n[ແນະນຳສຽງ/ເພງ] ${post.audioMoodIfTiktok}` : '');
   navigator.clipboard.writeText(text).then(() => showToast('Copy ແລ້ວ!'));
 }
 
@@ -890,19 +928,43 @@ async function loadAll() {
   finance = f.finance || [];
   training = t.training || [];
   buildWorkerDatalist(); // local workers changed -- keep the shared training-form picker in sync
-  renderWorkers();
   renderFinance();
   renderTraining();
-  if (currentTab === 'dashboard') renderDashboard();
+}
+
+async function loadCompanyInfo() {
+  const data = await api('GET', '/api/company-info');
+  const info = data.companyInfo || {};
+  document.getElementById('companyNameInput').value = info.companyName || '';
+  document.getElementById('companyAddressInput').value = info.companyAddress || '';
+  document.getElementById('companyPhoneInput').value = info.companyPhone || '';
+}
+
+async function saveCompanyInfo() {
+  const msg = document.getElementById('companyInfoMsg');
+  try {
+    await api('POST', '/api/company-info', {
+      companyName: document.getElementById('companyNameInput').value,
+      companyAddress: document.getElementById('companyAddressInput').value,
+      companyPhone: document.getElementById('companyPhoneInput').value,
+    });
+    msg.innerText = 'ບັນທຶກສຳເລັດແລ້ວ!';
+    msg.className = 'text-[11px] text-emerald-400';
+    showToast('ບັນທຶກຂໍ້ມູນບໍລິສັດສຳເລັດແລ້ວ!');
+  } catch (e) {
+    msg.innerText = e.message;
+    msg.className = 'text-[11px] text-red-400';
+  }
 }
 
 (async function init() {
-  switchTab('dashboard');
-  switchWorkerSubtab('local');
+  switchTab('finance');
+  switchFinanceSubtab('ledger');
   await checkApiStatus();
   await loadAll();
   await loadContentHistory();
   await loadImportedData();
+  await loadCompanyInfo();
 })();
 </script>
 </body>
