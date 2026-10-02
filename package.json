@@ -1,7 +1,7 @@
 {
   "name": "labor-agency-manager",
   "version": "1.0.0",
-  "description": "Workforce recruitment & labor export management app for a Lao-to-Thailand labor agency — worker pipeline, finance ledger, pre-departure training, and AI recruitment content generation.",
+  "description": "Workforce management app for a Lao-to-Thailand labor agency — finance ledger (with KS Recruitment Agency import, per-Lot income/expense calculator, and runaway-worker debt-acknowledgment PDFs), pre-departure training, and AI recruitment content generation.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,6 +10,7 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "express-session": "^1.18.0"
+    "express-session": "^1.18.0",
+    "pdfkit": "^0.15.2"
   }
 }

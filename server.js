@@ -6,6 +6,14 @@ const fs = require('fs');
 const crypto = require('crypto');
 const session = require('express-session');
 const Anthropic = require('@anthropic-ai/sdk');
+const PDFDocument = require('pdfkit');
+
+// Bundled Lao-script font (Noto Sans Lao, SIL OFL licensed) used for the
+// generated debt-acknowledgment PDF — the system fonts pdfkit ships with
+// have no Lao glyphs at all, so without this every Lao character would
+// render as a blank box.
+const FONT_LAO_REGULAR = path.join(__dirname, 'fonts', 'NotoSansLao-Regular.ttf');
+const FONT_LAO_BOLD = path.join(__dirname, 'fonts', 'NotoSansLao-Bold.ttf');
 
 // Never let one bad request take the whole server down. Without these
 // handlers, an error thrown outside a try/catch becomes an "unhandled
@@ -40,17 +48,24 @@ const DEFAULT_DATA = {
   contentHistory: [],   // generated social-media recruitment posts (most recent first)
   importedWorkers: [],   // read-only snapshot imported from the user's other system (KS Recruitment Agency)
   importedJobs: [],       // read-only snapshot of that system's job postings
+  runaways: [],             // workers already deployed who then fled/broke contract — fine + debt-acknowledgment record
 };
 
 let db = JSON.parse(JSON.stringify(DEFAULT_DATA));
-db.importMeta = null; // not an array, so it's set explicitly here rather than via DEFAULT_DATA + the array-enforcement loop below
+// Non-array fields aren't in DEFAULT_DATA (the array-enforcement loop below
+// would stomp them back to []), so they're defaulted explicitly here instead.
+db.importMeta = null;
+db.lotFinance = {};  // { [lotName]: { pricePerTraveler, finePerNonTraveler, currency, updatedAt } } — manually-set per-Lot rates used to auto-calculate income/expense from KS-imported worker counts
+db.companyInfo = {}; // { companyName, companyAddress, companyPhone } — used as the letterhead on the generated debt-acknowledgment PDF
 try {
   const loaded = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
-  db = Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), { importMeta: null }, loaded);
+  db = Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), { importMeta: null, lotFinance: {}, companyInfo: {} }, loaded);
   for (const key of Object.keys(DEFAULT_DATA)) {
     if (!Array.isArray(db[key])) db[key] = [];
   }
   if (db.importMeta === undefined) db.importMeta = null;
+  if (!db.lotFinance || typeof db.lotFinance !== 'object' || Array.isArray(db.lotFinance)) db.lotFinance = {};
+  if (!db.companyInfo || typeof db.companyInfo !== 'object' || Array.isArray(db.companyInfo)) db.companyInfo = {};
 } catch (e) { /* no data.json yet — start empty */ }
 
 function saveData() {
@@ -232,6 +247,189 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------------------------------------------------------------------
+// Lot-based finance calculator. Groups the read-only KS-imported workers by
+// their "lot" field (a recruitment/deployment batch, e.g. "OwatMaid 2026 /
+// 04") and classifies each worker as traveling or not based on a simple
+// keyword match against their KS status text — good enough to separate
+// "ສົ່ງແລ້ວ/deployed" from an obvious drop-out like "ໜີ/fled" or
+// "ຍົກເລີກ/cancelled" without needing a second manual per-worker UI. The
+// price-per-traveler (income) and fine-per-non-traveler (expense) are set by
+// the user per lot (db.lotFinance) since those rates vary deal to deal and
+// aren't present anywhere in the KS export.
+// ---------------------------------------------------------------------------
+const NON_TRAVEL_STATUS_HINTS = ['ໜີ', 'ຍົກເລີກ', 'ບໍ່ໄປ', 'ປະຕິເສດ', 'ຄືນບ້ານ', 'ຕົກ'];
+function isNonTravelStatus(status) {
+  const s = (status || '').toString();
+  return NON_TRAVEL_STATUS_HINTS.some((hint) => s.includes(hint));
+}
+
+app.get('/api/lots-summary', (req, res) => {
+  const groups = {};
+  db.importedWorkers.forEach((w) => {
+    const lot = (w.lot || '').toString().trim();
+    if (!lot) return;
+    if (!groups[lot]) groups[lot] = { lot, total: 0, travelCount: 0, nonTravelCount: 0 };
+    groups[lot].total += 1;
+    if (isNonTravelStatus(w.status)) groups[lot].nonTravelCount += 1;
+    else groups[lot].travelCount += 1;
+  });
+  const lots = Object.values(groups).map((g) => {
+    const pricing = db.lotFinance[g.lot] || {};
+    const pricePerTraveler = Number(pricing.pricePerTraveler) || 0;
+    const finePerNonTraveler = Number(pricing.finePerNonTraveler) || 0;
+    const income = g.travelCount * pricePerTraveler;
+    const expense = g.nonTravelCount * finePerNonTraveler;
+    return Object.assign({}, g, {
+      pricePerTraveler,
+      finePerNonTraveler,
+      currency: (pricing.currency || 'THB').toString(),
+      income,
+      expense,
+      net: income - expense,
+    });
+  });
+  lots.sort((a, b) => a.lot.localeCompare(b.lot));
+  res.json({ lots });
+});
+
+app.post('/api/lot-finance', (req, res) => {
+  const body = req.body || {};
+  const lot = (body.lot || '').toString().trim();
+  if (!lot) return res.status(400).json({ error: 'ກະລຸນາລະບຸ Lot.' });
+  const pricePerTraveler = Number(body.pricePerTraveler);
+  const finePerNonTraveler = Number(body.finePerNonTraveler);
+  db.lotFinance[lot] = {
+    pricePerTraveler: Number.isFinite(pricePerTraveler) && pricePerTraveler >= 0 ? pricePerTraveler : 0,
+    finePerNonTraveler: Number.isFinite(finePerNonTraveler) && finePerNonTraveler >= 0 ? finePerNonTraveler : 0,
+    currency: (body.currency || 'THB').toString().trim() || 'THB',
+    updatedAt: nowIso(),
+  };
+  saveData();
+  res.json({ lot, entry: db.lotFinance[lot] });
+});
+
+// ---------------------------------------------------------------------------
+// Company info — used purely as the letterhead/signature block on the
+// generated debt-acknowledgment PDF (see /api/runaways/:id/pdf below).
+// ---------------------------------------------------------------------------
+app.get('/api/company-info', (req, res) => {
+  res.json({ companyInfo: db.companyInfo });
+});
+
+app.post('/api/company-info', (req, res) => {
+  db.companyInfo = {
+    companyName: ((req.body && req.body.companyName) || '').toString().trim(),
+    companyAddress: ((req.body && req.body.companyAddress) || '').toString().trim(),
+    companyPhone: ((req.body && req.body.companyPhone) || '').toString().trim(),
+  };
+  saveData();
+  res.json({ companyInfo: db.companyInfo });
+});
+
+// ---------------------------------------------------------------------------
+// Runaway workers — a worker already deployed ("ສົ່ງແລ້ວ") who then fled the
+// job or broke contract. Recorded with the responsible agent and a fine
+// amount, and each record can produce a printable debt-acknowledgment PDF
+// (ໃບສັນຍານຳໜີ້) on demand — generated fresh every time from the record's
+// current data rather than stored as a file, so an edit/correction never
+// leaves a stale PDF lying around.
+// ---------------------------------------------------------------------------
+app.get('/api/runaways', (req, res) => {
+  res.json({ runaways: db.runaways });
+});
+
+app.post('/api/runaways', (req, res) => {
+  const body = req.body || {};
+  const missing = requireFields(body, ['workerName', 'agent', 'fineAmount']);
+  if (missing.length) return res.status(400).json({ error: `ກະລຸນາປ້ອນ: ${missing.join(', ')}` });
+  const fineAmount = Number(body.fineAmount);
+  if (!Number.isFinite(fineAmount) || fineAmount < 0) return res.status(400).json({ error: 'ຈຳນວນເງິນຄ່າປັບໄໝບໍ່ຖືກຕ້ອງ.' });
+  const record = {
+    id: crypto.randomUUID(),
+    workerId: body.workerId || null,
+    workerSource: body.workerSource === 'ks' ? 'ks' : 'local',
+    workerName: String(body.workerName).trim(),
+    lot: (body.lot || '').toString().trim(),
+    agent: String(body.agent).trim(),
+    fineAmount,
+    currency: (body.currency || 'THB').toString().trim() || 'THB',
+    contractNo: (body.contractNo || '').toString().trim() || `LAM-${Date.now()}`,
+    date: (body.date || nowIso().slice(0, 10)).toString(),
+    notes: (body.notes || '').toString(),
+    createdAt: nowIso(),
+  };
+  db.runaways.unshift(record);
+  saveData();
+  res.json({ record });
+});
+
+app.delete('/api/runaways/:id', (req, res) => {
+  const before = db.runaways.length;
+  db.runaways = db.runaways.filter((r) => r.id !== req.params.id);
+  if (db.runaways.length === before) return res.status(404).json({ error: 'ບໍ່ພົບລາຍການນີ້.' });
+  saveData();
+  res.json({ ok: true });
+});
+
+app.get('/api/runaways/:id/pdf', (req, res) => {
+  const record = db.runaways.find((r) => r.id === req.params.id);
+  if (!record) return res.status(404).json({ error: 'ບໍ່ພົບລາຍການນີ້.' });
+
+  const company = db.companyInfo || {};
+  const doc = new PDFDocument({ size: 'A4', margin: 56 });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="debt-agreement-${record.contractNo}.pdf"`);
+  doc.pipe(res);
+
+  doc.font(FONT_LAO_BOLD).fontSize(18).text('ໃບສັນຍາຮັບຮອງໜີ້', { align: 'center' });
+  doc.font(FONT_LAO_BOLD).fontSize(13).text('(ກໍລະນີແຮງງານໜີ / ບໍ່ປະຕິບັດຕາມສັນຍາຈັດສົ່ງແຮງງານ)', { align: 'center' });
+  doc.moveDown(0.4);
+  doc.font(FONT_LAO_REGULAR).fontSize(10).fillColor('#555')
+    .text(`ເລກທີ່ສັນຍາ: ${record.contractNo}      ວັນທີ: ${record.date}`, { align: 'center' });
+  doc.fillColor('#000');
+  doc.moveDown(1.2);
+
+  doc.font(FONT_LAO_REGULAR).fontSize(11);
+  doc.text(`ບໍລິສັດ/ຫ້າງຮ້ານ: ${company.companyName || '....................................................'}`);
+  doc.text(`ທີ່ຢູ່: ${company.companyAddress || '....................................................'}`);
+  doc.text(`ເບີໂທຕິດຕໍ່: ${company.companyPhone || '....................................................'}`);
+  doc.moveDown(1);
+
+  doc.font(FONT_LAO_BOLD).fontSize(11).text('ເນື້ອໃນສັນຍາ:');
+  doc.moveDown(0.3);
+  const lotLine = record.lot ? ` (Lot: ${record.lot})` : '';
+  const body = `ດ້ວຍແຮງງານຊື່ "${record.workerName}"${lotLine} ໄດ້ຖືກບໍລິສັດຈັດສົ່ງໄປເຮັດວຽກຕາມສັນຍາທີ່ໄດ້ຕົກລົງກັນໄວ້ແລ້ວ ແຕ່ຕໍ່ມາໄດ້ໜີອອກຈາກສະຖານທີ່ເຮັດວຽກ ຫຼື ບໍ່ປະຕິບັດຕາມເງື່ອນໄຂສັນຍາທີ່ໄດ້ລົງນາມໄວ້ ເຮັດໃຫ້ບໍລິສັດໄດ້ຮັບຄວາມເສຍຫາຍ.\n\nດັ່ງນັ້ນ "${record.agent}" ໃນຖານະຕົວແທນ/ຜູ້ຄ້ຳປະກັນຂອງແຮງງານຄົນດັ່ງກ່າວ ຈຶ່ງຕົກລົງຍອມຮັບຮອງໜີ້ ແລະ ຮັບຜິດຊອບຊົດໃຊ້ຄ່າເສຍຫາຍ/ຄ່າປັບໄໝ ໃຫ້ແກ່ບໍລິສັດ ເປັນຈຳນວນເງິນທັງໝົດ:`;
+  doc.font(FONT_LAO_REGULAR).fontSize(11).text(body, { align: 'left', lineGap: 4 });
+  doc.moveDown(0.5);
+  doc.font(FONT_LAO_BOLD).fontSize(15).text(`${Number(record.fineAmount).toLocaleString('en-US')} ${record.currency}`, { align: 'center' });
+  doc.moveDown(0.5);
+  doc.font(FONT_LAO_REGULAR).fontSize(11).text(
+    'ໂດຍສັນຍາວ່າຈະຊົດໃຊ້ເງິນຈຳນວນດັ່ງກ່າວໃຫ້ແກ່ບໍລິສັດຢ່າງຄົບຖ້ວນ ພາຍໃນໄລຍະເວລາທີ່ທັງສອງຝ່າຍໄດ້ຕົກລົງກັນ. ຖ້າບໍ່ປະຕິບັດຕາມ ຜູ້ຄ້ຳປະກັນຍິນຍອມໃຫ້ບໍລິສັດດຳເນີນການຕາມກົດໝາຍຕໍ່ໄປ.',
+    { lineGap: 4 }
+  );
+  if (record.notes) {
+    doc.moveDown(0.5);
+    doc.text(`ໝາຍເຫດ: ${record.notes}`, { lineGap: 4 });
+  }
+
+  doc.moveDown(3.5);
+  const sigY = doc.y;
+  doc.fontSize(11).text('ລາຍເຊັນຜູ້ຕາງໜ້າບໍລິສັດ', 56, sigY, { width: 220, align: 'center' });
+  doc.text('ລາຍເຊັນຕົວແທນ/ຜູ້ຄ້ຳປະກັນ', 318, sigY, { width: 220, align: 'center' });
+  doc.moveDown(2.2);
+  const lineY = doc.y;
+  doc.text('( .................................... )', 56, lineY, { width: 220, align: 'center' });
+  doc.text('( .................................... )', 318, lineY, { width: 220, align: 'center' });
+  doc.moveDown(0.4);
+  const dateY = doc.y;
+  doc.fontSize(9).fillColor('#555');
+  doc.text(`ວັນທີ: ${record.date}`, 56, dateY, { width: 220, align: 'center' });
+  doc.text(`ວັນທີ: ${record.date}`, 318, dateY, { width: 220, align: 'center' });
+
+  doc.end();
+});
+
+// ---------------------------------------------------------------------------
 // API key management (same pattern as the sibling AI Movie Architect app):
 // saved into .env on disk so it survives a restart, applied live with no
 // restart needed.
@@ -359,6 +557,13 @@ app.post('/api/finance', (req, res) => {
     id: crypto.randomUUID(),
     type: body.type,
     workerId: body.workerId || null,
+    // Same workerSource/workerName snapshot pattern as training records (see
+    // the training POST route below) — lets a finance entry reference either
+    // a locally-added worker or a read-only KS-imported one, and still show
+    // a sensible name later even if that worker is deleted or missing from a
+    // fresh import.
+    workerSource: body.workerSource === 'ks' ? 'ks' : 'local',
+    workerName: (body.workerName || '').toString().trim(),
     description: String(body.description).trim(),
     amount,
     currency: (body.currency || 'LAK').toString().trim(),
@@ -456,30 +661,60 @@ app.delete('/api/training/:id', (req, res) => {
 // ---------------------------------------------------------------------------
 function buildContentTool() {
   return {
-    name: 'submit_recruitment_post',
-    description: 'Submit one ready-to-post Lao-language recruitment post for the requested platform.',
+    name: 'submit_recruitment_posts',
+    description: 'Submit exactly 3 varied, ready-to-post Lao-language recruitment post options for the requested platform and style, so agency staff can pick their favorite.',
     input_schema: {
       type: 'object',
       properties: {
-        hook: { type: 'string', description: 'A short, scroll-stopping opening line in Lao (the first 1-2 sentences people see), written to grab attention of a Lao jobseeker on this specific platform.' },
-        caption: { type: 'string', description: 'The full post caption in Lao: hook + key job details (role, destination, pay/benefits if given, requirements) + a clear call to action (how to apply/contact). Written in a warm, trustworthy, energetic tone appropriate for recruiting workers, using short paragraphs/line breaks suited to the platform.' },
-        hashtags: { type: 'string', description: 'A space-separated list of 6-10 relevant Lao/Thai/English hashtags for reach, e.g. #ຮັບສະໝັກງານ #ໄປເຮັດວຽກໄທ #ງານຖືກກົດໝາຍ.' },
-        videoIdeaIfTiktok: { type: 'string', description: 'If the platform is TikTok: 2-3 short bullet-style sentences (as one string) suggesting what the video should show (shots/scenes), since TikTok needs a visual idea, not just a caption. If the platform is Facebook, leave this as an empty string.' },
+        variants: {
+          type: 'array',
+          minItems: 3,
+          maxItems: 3,
+          description: 'Exactly 3 different takes on the same job opening, same requested style, each with its own hook/angle/phrasing.',
+          items: {
+            type: 'object',
+            properties: {
+              hook: { type: 'string', description: 'A short, scroll-stopping opening line in Lao (the first 1-2 sentences people see), written to grab attention of a Lao jobseeker on this specific platform.' },
+              caption: { type: 'string', description: 'The full post caption in Lao: hook + key job details (role, destination, pay/benefits if given, requirements) + a clear call to action (how to apply/contact). Written in a warm, trustworthy, energetic tone appropriate for recruiting workers, using short paragraphs/line breaks suited to the platform.' },
+              hashtags: { type: 'string', description: 'A space-separated list of 6-10 relevant Lao/Thai/English hashtags for reach, e.g. #ຮັບສະໝັກງານ #ໄປເຮັດວຽກໄທ #ງານຖືກກົດໝາຍ.' },
+              videoIdeaIfTiktok: { type: 'string', description: 'If the platform is TikTok: 2-3 short bullet-style sentences (as one string) suggesting what the video should show (shots/scenes), since TikTok needs a visual idea, not just a caption. If the platform is Facebook, leave this as an empty string.' },
+              audioMoodIfTiktok: { type: 'string', description: 'If the platform is TikTok: describe, in Lao, the MOOD/GENRE/ENERGY of background sound that would fit this specific post (e.g. upbeat and fun, heartfelt and emotional, motivational/inspiring) — never name a specific real song or sound, since real trending sounds change daily and you cannot know which are current; instead phrase it so the user knows what mood to search for in TikTok\'s own trending-sounds picker when they post. If the platform is Facebook, leave this as an empty string.' },
+            },
+            required: ['hook', 'caption', 'hashtags', 'videoIdeaIfTiktok', 'audioMoodIfTiktok'],
+          },
+        },
       },
-      required: ['hook', 'caption', 'hashtags', 'videoIdeaIfTiktok'],
+      required: ['variants'],
     },
   };
 }
 
-const CONTENT_SYSTEM_PROMPT = `You are a senior social-media recruitment copywriter working for a licensed Lao labor-export agency that legally recruits Lao workers for jobs in Thailand (factory work, construction, agriculture, services, etc.), handles their pre-departure training, and manages their documents/visas.
+// Each content "format" steers the angle all 3 variants are written from;
+// within a format, the 3 variants still differ from each other (different
+// hook/phrasing), they just share the same narrative approach.
+const CONTENT_STYLE_GUIDES = {
+  standard: 'STYLE: Standard recruitment ad. Clearly present the job opening, destination, pay/benefits, requirements, and a clear call to action — straightforward and informative.',
+  testimonial: 'STYLE: Testimonial / first-person story. Write as if a Lao worker who already has this exact job is speaking for themselves, sharing a believable, down-to-earth account of what the work and life there is like and encouraging others to apply. Refer to the speaker only generically (e.g. "ເອື້ອຍ", "ອ້າຍ", "ໜູ") — never invent a specific named individual or claim to be a real identifiable person. Still include every concrete job detail the user gave you; do not invent experiences that contradict those details.',
+  before_after: 'STYLE: Before/After contrast. Paint a short, realistic "before" (struggling for income, limited opportunity at home) against an "after" once this job is taken (steady pay, new skills, able to support family) to motivate the reader. Keep it grounded in the actual job details given — no exaggerated or invented promises.',
+};
 
-Your job is to write a single ready-to-post recruitment advertisement in the LAO LANGUAGE (script), for either TikTok or Facebook as specified, based on the job details the user provides. Follow these rules:
+function buildContentSystemPrompt(format) {
+  const styleGuide = CONTENT_STYLE_GUIDES[format] || CONTENT_STYLE_GUIDES.standard;
+  return `You are a senior social-media recruitment copywriter working for a licensed Lao labor-export agency that legally recruits Lao workers for jobs in Thailand (factory work, construction, agriculture, services, etc.), handles their pre-departure training, and manages their documents/visas.
+
+Your job is to write 3 varied, ready-to-post recruitment advertisement options in the LAO LANGUAGE (script), for either TikTok or Facebook as specified, based on the job details the user provides. Follow these rules:
 - Write naturally in Lao, in a warm, trustworthy, energetic tone that speaks directly to a Lao jobseeker (often someone in a rural area considering working abroad for the first time) — not a stiff corporate tone.
 - Always make clear the recruitment is LEGAL/licensed ("ຖືກກົດໝາຍ") when that fact is relevant, since this reassures jobseekers who are wary of scams.
 - Include concrete details the user gave you (job type, destination, pay, benefits, requirements) — never invent numbers or promises the user didn't give you; if pay/benefits aren't given, don't make them up.
 - End with a clear, simple call to action telling people exactly how to apply or get in touch.
 - Match the platform: TikTok captions are short and punchy with a strong hook since the real content is the video; Facebook captions can be a bit longer and more detailed since Facebook readers expect more information.
-- Output ONLY through the submit_recruitment_post tool call.`;
+
+${styleGuide}
+
+Produce exactly 3 variants (via the submit_recruitment_posts tool's "variants" array) — 3 good, genuinely different takes within the style above (different hook and phrasing each time), not 3 unrelated styles mixed together.
+
+Output ONLY through the submit_recruitment_posts tool call.`;
+}
 
 app.post('/api/generate-content', async (req, res) => {
   if (!apiKey) return res.status(400).json({ error: 'ຍັງບໍ່ໄດ້ຕັ້ງ API key. ກະລຸນາເພີ່ມ Anthropic API key ກ່ອນ.' });
@@ -489,8 +724,9 @@ app.post('/api/generate-content', async (req, res) => {
   if (!['tiktok', 'facebook'].includes(body.platform)) {
     return res.status(400).json({ error: 'platform ຕ້ອງເປັນ "tiktok" ຫຼື "facebook".' });
   }
+  const format = ['standard', 'testimonial', 'before_after'].includes(body.format) ? body.format : 'standard';
 
-  const userText = `Write one recruitment post for this job opening:
+  const userText = `Write 3 recruitment post variants for this job opening:
 - Job title / role: ${body.jobTitle}
 - Platform: ${body.platform}
 - Destination (country/province/employer, if given): ${body.destination || '(not specified)'}
@@ -502,19 +738,23 @@ app.post('/api/generate-content', async (req, res) => {
     const tool = buildContentTool();
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 1200,
-      system: CONTENT_SYSTEM_PROMPT,
+      max_tokens: 3000,
+      system: buildContentSystemPrompt(format),
       tools: [tool],
       tool_choice: { type: 'tool', name: tool.name },
       messages: [{ role: 'user', content: userText }],
     }, { maxRetries: 0 });
 
     const toolUse = response.content.find((b) => b.type === 'tool_use' && b.name === tool.name);
-    if (!toolUse) return res.status(502).json({ error: 'Claude ບໍ່ສົ່ງຄຳຕອບແບບທີ່ຄາດໄວ້. ລອງໃໝ່ອີກຄັ້ງ.' });
+    const variants = toolUse && Array.isArray(toolUse.input.variants) ? toolUse.input.variants.slice(0, 3) : [];
+    if (!variants.length) return res.status(502).json({ error: 'Claude ບໍ່ສົ່ງຄຳຕອບແບບທີ່ຄາດໄວ້. ລອງໃໝ່ອີກຄັ້ງ.' });
 
-    const post = toolUse.input;
-    const record = {
+    const batchId = crypto.randomUUID();
+    const records = variants.map((post, idx) => ({
       id: crypto.randomUUID(),
+      batchId,
+      variantIndex: idx + 1,
+      format,
       jobTitle: body.jobTitle,
       platform: body.platform,
       destination: body.destination || '',
@@ -525,12 +765,13 @@ app.post('/api/generate-content', async (req, res) => {
       caption: post.caption,
       hashtags: post.hashtags,
       videoIdeaIfTiktok: post.videoIdeaIfTiktok || '',
+      audioMoodIfTiktok: post.audioMoodIfTiktok || '',
       createdAt: nowIso(),
-    };
-    db.contentHistory.unshift(record);
-    if (db.contentHistory.length > 50) db.contentHistory.length = 50;
+    }));
+    db.contentHistory = records.concat(db.contentHistory);
+    if (db.contentHistory.length > 90) db.contentHistory.length = 90;
     saveData();
-    res.json({ post: record });
+    res.json({ posts: records });
   } catch (err) {
     console.error('[generate-content] error:', err);
     if (err && err.status === 401) {
